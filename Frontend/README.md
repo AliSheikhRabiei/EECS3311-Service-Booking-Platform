@@ -5,5 +5,4 @@
 - Yasamin Kheirkhahan
 - Ali Sheikh Rabiei
 
-## Project Description
-Booking platform
+Front end, phase 2

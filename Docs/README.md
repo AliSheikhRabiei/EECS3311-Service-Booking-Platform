@@ -5,5 +5,4 @@
 - Yasamin Kheirkhahan
 - Ali Sheikh Rabiei
 
-## Project Description
-Booking platform
+Any additional documents here

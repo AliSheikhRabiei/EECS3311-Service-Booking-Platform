@@ -7,3 +7,5 @@
 
 ## Project Description
 Booking platform
+
+## Tech Stack
