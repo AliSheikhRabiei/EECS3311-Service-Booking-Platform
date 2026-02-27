@@ -1,0 +1,113 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 OPR/127.0.0.0" version="29.6.0">
+  <diagram name="Page-1" id="e2AbvhvwVhZ2N8-xHIMX">
+    <mxGraphModel dx="992" dy="1733" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-39" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-1" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Admin" vertex="1">
+          <mxGeometry height="60" width="30" x="760" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-38" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Consultant" vertex="1">
+          <mxGeometry height="60" width="30" x="750" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-4" parent="1" style="swimlane;startSize=0;" value="&#xa;Service Booking &amp;amp; Consulting Platform&#xa;&#xa;" vertex="1">
+          <mxGeometry height="740" width="590" x="120" y="-70" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-7" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;565&quot; data-end=&quot;572&quot;&gt;UC1&lt;/strong&gt; Browse Consulting Services" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-21" edge="1" parent="HwmRxQ8OLM6bujFY_GCm-4" source="HwmRxQ8OLM6bujFY_GCm-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;endArrow=block;endFill=1;" target="HwmRxQ8OLM6bujFY_GCm-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-22" connectable="0" parent="HwmRxQ8OLM6bujFY_GCm-21" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="«include»" vertex="1">
+          <mxGeometry relative="1" x="-0.5843" y="6" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-8" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;602&quot; data-end=&quot;609&quot;&gt;UC2&lt;/strong&gt; Request a Booking" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-13" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;630&quot; data-end=&quot;637&quot;&gt;UC3&lt;/strong&gt; Cancel a Booking" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-23" edge="1" parent="HwmRxQ8OLM6bujFY_GCm-4" source="HwmRxQ8OLM6bujFY_GCm-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.017;entryY=0.379;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;exitX=-0.014;exitY=0.429;exitDx=0;exitDy=0;exitPerimeter=0;entryPerimeter=0;" target="HwmRxQ8OLM6bujFY_GCm-14" value="&#xa;«include»&#xa;&#xa;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="88" y="460" />
+              <mxPoint x="70" y="460" />
+              <mxPoint x="70" y="550" />
+            </Array>
+            <mxPoint x="50" y="460" as="sourcePoint" />
+            <mxPoint x="50" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-12" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;688&quot; data-end=&quot;695&quot;&gt;UC5&lt;/strong&gt; Process Payment" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-11" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;657&quot; data-end=&quot;664&quot;&gt;UC4&lt;/strong&gt; View Booking History" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-9" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;747&quot; data-end=&quot;754&quot;&gt;UC7&lt;/strong&gt; View Payment History" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-14" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;714&quot; data-end=&quot;721&quot;&gt;UC6&lt;/strong&gt; Manage Payment Methods" vertex="1">
+          <mxGeometry height="80" width="120" x="90" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-15" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;803&quot; data-end=&quot;810&quot;&gt;UC8&lt;/strong&gt; Manage Availability" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-30" edge="1" parent="HwmRxQ8OLM6bujFY_GCm-4" source="HwmRxQ8OLM6bujFY_GCm-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;" target="HwmRxQ8OLM6bujFY_GCm-19">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="520" />
+              <mxPoint x="530" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-31" connectable="0" parent="HwmRxQ8OLM6bujFY_GCm-30" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="«extend»" vertex="1">
+          <mxGeometry relative="1" x="0.4389" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-16" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;833&quot; data-end=&quot;840&quot;&gt;UC9&lt;/strong&gt; Accept/Reject Booking Request" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-17" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;873&quot; data-end=&quot;881&quot;&gt;UC10&lt;/strong&gt; Complete a Booking" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-18" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;923&quot; data-end=&quot;931&quot;&gt;UC11&lt;/strong&gt; Approve Consultant Registration" vertex="1">
+          <mxGeometry height="80" width="120" x="390" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-19" parent="HwmRxQ8OLM6bujFY_GCm-4" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;strong data-start=&quot;966&quot; data-end=&quot;974&quot;&gt;UC12&lt;/strong&gt; Define System Policies" vertex="1">
+          <mxGeometry height="80" width="120" x="390" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-5" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Client" vertex="1">
+          <mxGeometry height="60" width="30" x="20" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-32" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.001;entryY=0.583;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-33" connectable="0" parent="HwmRxQ8OLM6bujFY_GCm-32" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.0309" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-34" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.933;entryY=0.207;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-36" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HwmRxQ8OLM6bujFY_GCm-37" edge="1" parent="1" source="HwmRxQ8OLM6bujFY_GCm-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.992;entryY=0.392;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" target="HwmRxQ8OLM6bujFY_GCm-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
