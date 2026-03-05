@@ -4,6 +4,7 @@ import com.platform.domain.Consultant;
 import com.platform.domain.Service;
 import com.platform.domain.TimeSlot;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,5 +59,52 @@ public class AvailabilityService {
         if (consultant == null) return new ArrayList<>();
         return Collections.unmodifiableList(
                 slotsByConsultant.getOrDefault(consultant.getId(), new ArrayList<>()));
+    }
+
+    /**
+     * UC8 – Splits a long availability window into consecutive 1-hour TimeSlot objects
+     * and adds each one to the consultant's schedule.
+     *
+     * Rules:
+     * - end must be after start.
+     * - Each slot is exactly 1 hour: [start, start+1h], [start+1h, start+2h], ...
+     * - Segments shorter than 1 hour at the tail are ignored.
+     * - Duplicate slot ids (same start time) are silently skipped.
+     *
+     * @param consultant the consultant whose availability is being set
+     * @param start      the beginning of the availability window
+     * @param end        the end of the availability window
+     * @return the number of new slots actually added
+     */
+    public int addTimeSlotBlock(Consultant consultant, LocalDateTime start, LocalDateTime end) {
+        if (consultant == null) throw new IllegalArgumentException("Consultant must not be null.");
+        if (start == null || end == null) throw new IllegalArgumentException("start and end must not be null.");
+        if (!end.isAfter(start)) throw new IllegalArgumentException("end must be after start.");
+
+        // Collect existing slot ids so we can skip duplicates
+        List<TimeSlot> existing = slotsByConsultant.getOrDefault(consultant.getId(), new ArrayList<>());
+        java.util.Set<String> existingIds = existing.stream()
+                .map(TimeSlot::getSlotId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        int added = 0;
+        LocalDateTime cursor = start;
+        while (!cursor.plusHours(1).isAfter(end)) {
+            LocalDateTime slotEnd = cursor.plusHours(1);
+            TimeSlot slot = new TimeSlot(cursor, slotEnd);
+            if (!existingIds.contains(slot.getSlotId())) {
+                addTimeSlot(consultant, slot);
+                existingIds.add(slot.getSlotId());
+                added++;
+            }
+            cursor = slotEnd;
+        }
+        System.out.println("[AvailabilityService] Block added " + added + " slot(s) for " + consultant.getName());
+        return added;
+    }
+
+    /** Alias for listAllSlots — returns all slots (available + reserved) for a consultant. */
+    public List<TimeSlot> listAllSlotsForConsultant(Consultant consultant) {
+        return listAllSlots(consultant);
     }
 }

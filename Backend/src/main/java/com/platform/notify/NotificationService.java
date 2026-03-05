@@ -21,12 +21,13 @@ public class NotificationService {
 
     private String inferEventType(String message) {
         String lower = message.toLowerCase();
+        // Check payment/refund FIRST — their messages often contain "confirmed"
+        if (lower.contains("refund"))                              return "REFUND";
+        if (lower.contains("payment") || lower.contains("receipt")) return "PAYMENT";
         if (lower.contains("confirmed"))  return "BOOKING_CONFIRMED";
         if (lower.contains("rejected"))   return "BOOKING_REJECTED";
         if (lower.contains("cancelled"))  return "BOOKING_CANCELLED";
-        if (lower.contains("payment") || lower.contains("receipt")) return "PAYMENT";
         if (lower.contains("completed"))  return "BOOKING_COMPLETED";
-        if (lower.contains("refund"))     return "REFUND";
         return "GENERAL";
     }
 }

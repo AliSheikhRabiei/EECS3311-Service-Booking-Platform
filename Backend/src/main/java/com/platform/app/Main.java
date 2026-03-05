@@ -27,6 +27,8 @@ import com.platform.repository.BookingRepository;
 import com.platform.service.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -215,6 +217,8 @@ public class Main {
                 case "8"  -> menuAdminApprove(sc);
                 case "9"  -> menuAdminPolicy(sc);
                 case "10" -> menuCompleteBooking(sc);
+                case "11" -> menuCancelBooking(sc);
+                case "12" -> menuManageAvailability(sc);
                 case "0"  -> { System.out.println("Goodbye!"); running = false; }
                 default   -> System.out.println("  Invalid choice.");
             }
@@ -238,6 +242,8 @@ public class Main {
                 │  8.  Admin: Approve Consultant (UC11)       │
                 │  9.  Admin: Set Cancellation Policy (UC12)  │
                 │  10. Complete Booking (UC10)                │
+                │  11. Cancel Booking (UC3)                   │
+                │  12. Manage Availability / Slots (UC8)      │
                 │  0.  Exit                                   │
                 └─────────────────────────────────────────────┘""");
     }
@@ -404,19 +410,42 @@ public class Main {
     }
 
     private void menuAdminPolicy(Scanner sc) {
-        System.out.println("\n── Admin: Cancellation Policy ────────────────");
-        System.out.println("  1) Default (allow cancel before PAID, no fee)");
-        System.out.println("  2) No cancellations allowed");
+        System.out.println("\n── Admin: Configure Policies (UC12) ──────────");
+        System.out.println("  -- Cancellation Policy --");
+        System.out.println("  1) Default  (allow cancel on REQUESTED/CONFIRMED/PENDING_PAYMENT/PAID, no fee)");
+        System.out.println("  2) Strict   (no cancellations allowed at all)");
+        System.out.println();
+        System.out.println("  -- Refund Policy --");
+        System.out.println("  3) Default  (80% refund on paid bookings)");
+        System.out.println("  4) Full     (100% refund on paid bookings)");
+        System.out.println("  5) No Refund (0% — client forfeits payment on cancellation)");
         System.out.print("  Choice: ");
         switch (sc.nextLine().trim()) {
-            case "1" -> admin.setCancellationPolicy(new DefaultCancellationPolicy());
-            case "2" -> admin.setCancellationPolicy(new CancellationPolicy() {
-                @Override public boolean canCancel(com.platform.domain.Booking b, java.time.LocalDateTime now) { return false; }
-                @Override public double cancellationFee(com.platform.domain.Booking b, java.time.LocalDateTime now) { return b.getService().getPrice(); }
-            });
-            default -> System.out.println("  Invalid.");
+            case "1" -> {
+                admin.setCancellationPolicy(new DefaultCancellationPolicy());
+                System.out.println("  ✓ Cancellation policy → Default (cancel allowed, no fee).");
+            }
+            case "2" -> {
+                admin.setCancellationPolicy(new CancellationPolicy() {
+                    @Override public boolean canCancel(com.platform.domain.Booking b, java.time.LocalDateTime now) { return false; }
+                    @Override public double cancellationFee(com.platform.domain.Booking b, java.time.LocalDateTime now) { return b.getService().getPrice(); }
+                });
+                System.out.println("  ✓ Cancellation policy → Strict (no cancellations).");
+            }
+            case "3" -> {
+                admin.setRefundPolicy(new DefaultRefundPolicy());
+                System.out.println("  ✓ Refund policy → Default (80% refund).");
+            }
+            case "4" -> {
+                admin.setRefundPolicy(new FullRefundPolicy());
+                System.out.println("  ✓ Refund policy → Full (100% refund).");
+            }
+            case "5" -> {
+                admin.setRefundPolicy((tx, now) -> 0.0);
+                System.out.println("  ✓ Refund policy → No Refund (0% — client forfeits payment).");
+            }
+            default -> System.out.println("  Invalid choice.");
         }
-        System.out.println("  Policy updated.");
     }
 
     private void menuCompleteBooking(Scanner sc) {
@@ -432,6 +461,154 @@ public class Main {
             bookingService.completeBooking(bid);
         } catch (Exception e) {
             System.out.println("  Error: " + e.getMessage());
+        }
+    }
+
+    private void menuCancelBooking(Scanner sc) {
+        System.out.println("\n── Cancel Booking (UC3) ──────────────────────");
+
+        // Show all active (non-terminal) bookings for the demo client
+        List<Booking> active = bookingService.getBookingsForClient(demoClient.getId())
+                .stream()
+                .filter(b -> {
+                    String s = b.getState().getClass().getSimpleName();
+                    return s.equals("RequestedState") || s.equals("ConfirmedState")
+                            || s.equals("PendingPaymentState") || s.equals("PaidState");
+                })
+                .collect(Collectors.toList());
+
+        if (active.isEmpty()) {
+            System.out.println("  No active bookings to cancel.");
+            return;
+        }
+
+        System.out.println("  Active bookings:");
+        active.forEach(b -> System.out.printf("  %-8s  %-20s  %s%n",
+                b.getBookingId(), b.getService().getTitle(), b.getStateName()));
+
+        System.out.print("  Enter Booking ID to cancel: ");
+        String bid = sc.nextLine().trim();
+        Booking booking = bookingService.getBooking(bid);
+        if (booking == null) {
+            System.out.println("  Booking not found.");
+            return;
+        }
+
+        // Warn user if booking is PAID — they will receive a refund
+        boolean isPaid = booking.getState().getClass().getSimpleName().equals("PaidState");
+        if (isPaid) {
+            System.out.println("  ⚠  This booking is PAID. Cancelling will trigger a refund (80% of amount).");
+        }
+
+        System.out.print("  Reason for cancellation: ");
+        String reason = sc.nextLine().trim();
+        if (reason.isBlank()) reason = "Client requested cancellation";
+
+        boolean cancelled = bookingService.cancelBooking(bid, reason);
+        if (cancelled) {
+            System.out.println("  ✓ Booking " + bid + " has been CANCELLED.");
+            System.out.println("  ✓ Time slot has been freed.");
+            if (isPaid) {
+                // Show the refund transaction that was just created
+                paymentService.getPaymentHistory(demoClient).stream()
+                        .filter(t -> t.getStatus() == PaymentStatus.REFUNDED)
+                        .reduce((a, b) -> b)   // last refund = the one just created
+                        .ifPresent(t -> System.out.printf(
+                                "  ✓ Refund issued: $%.2f  (tx: %s)%n",
+                                t.getAmount(), t.getTransactionId()));
+            }
+        } else {
+            System.out.println("  ✗ Cancellation blocked by current cancellation policy.");
+            System.out.println("    (Booking state: " + booking.getStateName() + ")");
+        }
+    }
+
+    private void menuManageAvailability(Scanner sc) {
+        System.out.println("\n── Manage Availability / Time Slots (UC8) ────");
+        System.out.println("  Consultant: " + demoConsultant.getName());
+
+        List<TimeSlot> all = availabilityService.listAllSlots(demoConsultant);
+        System.out.println("  Current slots (" + all.size() + "):");
+        if (all.isEmpty()) {
+            System.out.println("    (none)");
+        } else {
+            for (int i = 0; i < all.size(); i++) {
+                TimeSlot s = all.get(i);
+                System.out.printf("    [%d] %s  —  %s%n",
+                        i + 1, s.getSlotId(), s.isAvailable() ? "AVAILABLE" : "RESERVED");
+            }
+        }
+
+        System.out.println();
+        System.out.println("  a) Add a single 1-hour slot  (enter start datetime)");
+        System.out.println("  b) Add a time block          (start datetime + number of hours → auto-split into 1-hour slots)");
+        System.out.println("  c) Remove a slot");
+        System.out.print("  Choice: ");
+        String choice = sc.nextLine().trim().toLowerCase();
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        switch (choice) {
+            case "a" -> {
+                System.out.println("  Format: yyyy-MM-dd HH:mm  (e.g. 2026-04-01 09:00)");
+                System.out.print("  Start datetime: ");
+                String raw = sc.nextLine().trim();
+                try {
+                    LocalDateTime start = LocalDateTime.parse(raw, fmt);
+                    LocalDateTime end   = start.plusHours(1);
+                    TimeSlot slot = new TimeSlot(start, end);
+                    availabilityService.addTimeSlot(demoConsultant, slot);
+                    System.out.println("  ✓ 1-hour slot added: " + slot.getSlotId());
+                } catch (DateTimeParseException e) {
+                    System.out.println("  ✗ Invalid format. Use yyyy-MM-dd HH:mm  e.g. 2026-04-01 09:00");
+                } catch (IllegalArgumentException e) {
+                    System.out.println("  ✗ Error: " + e.getMessage());
+                }
+            }
+            case "b" -> {
+                System.out.println("  Format: yyyy-MM-dd HH:mm  (e.g. 2026-04-01 09:00)");
+                System.out.print("  Start datetime: ");
+                String rawStart = sc.nextLine().trim();
+                System.out.print("  Number of hours for this availability window (e.g. 10): ");
+                String rawHours = sc.nextLine().trim();
+                try {
+                    LocalDateTime start = LocalDateTime.parse(rawStart, fmt);
+                    int hours = Integer.parseInt(rawHours);
+                    if (hours < 1) { System.out.println("  ✗ Hours must be at least 1."); return; }
+                    LocalDateTime end = start.plusHours(hours);
+                    int added = availabilityService.addTimeSlotBlock(demoConsultant, start, end);
+                    System.out.println("  ✓ Block split into " + added + " one-hour slot(s).");
+                    // Print the newly added slots
+                    availabilityService.listAllSlots(demoConsultant).stream()
+                            .filter(TimeSlot::isAvailable)
+                            .skip(Math.max(0, availabilityService.listAllSlots(demoConsultant).size() - added))
+                            .forEach(s -> System.out.println("    → " + s.getSlotId()));
+                } catch (DateTimeParseException e) {
+                    System.out.println("  ✗ Invalid datetime format. Use yyyy-MM-dd HH:mm");
+                } catch (NumberFormatException e) {
+                    System.out.println("  ✗ Invalid number of hours.");
+                } catch (IllegalArgumentException e) {
+                    System.out.println("  ✗ Error: " + e.getMessage());
+                }
+            }
+            case "c" -> {
+                if (all.isEmpty()) { System.out.println("  No slots to remove."); return; }
+                System.out.print("  Enter slot number to remove: ");
+                try {
+                    int idx = Integer.parseInt(sc.nextLine().trim()) - 1;
+                    if (idx < 0 || idx >= all.size()) { System.out.println("  Invalid number."); return; }
+                    TimeSlot toRemove = all.get(idx);
+                    if (!toRemove.isAvailable()) {
+                        System.out.println("  ✗ Cannot remove a RESERVED slot (a booking exists for it).");
+                        return;
+                    }
+                    availabilityService.removeTimeSlot(demoConsultant, toRemove.getSlotId());
+                    System.out.println("  ✓ Slot removed: " + toRemove.getSlotId());
+                } catch (NumberFormatException e) {
+                    System.out.println("  ✗ Invalid number.");
+                }
+            }
+            default -> System.out.println("  Invalid choice.");
         }
     }
 
