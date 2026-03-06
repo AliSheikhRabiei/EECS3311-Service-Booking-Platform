@@ -229,8 +229,7 @@ public class Main {
         sc.close();
     }*/
 
-    private void runMenu() {
-        Scanner sc = new Scanner(System.in);
+    private void runMenu(Scanner sc) {
 
         boolean running = true;
 
@@ -267,13 +266,13 @@ public class Main {
                 case "8" -> menuAdminApprove(sc);
                 case "9" -> menuAdminPolicy(sc);
                 case "0" -> {
-                    runMenu();
+
                    running = false;
                 }
                 default -> System.out.println("  Invalid choice.");
             }
         }
-        sc.close();
+
     }
     private void printAdminMenu() {
 
@@ -305,14 +304,13 @@ public class Main {
                 case "10" -> menuCompleteBooking(sc);
                 case "12" -> menuManageAvailability(sc);
                 case "0" -> {
-                   runMenu();
                   running = false;
-                 return;
+
                 }
                 default -> System.out.println("  Invalid choice.");
             }
         }
-        sc.close();
+
 
     }
     private void printConsulMenu() {
@@ -345,14 +343,14 @@ public class Main {
                 case "7" -> menuViewPaymentHistory();
                 case "11" -> menuCancelBooking(sc);
                 case "0" -> {
-                   runMenu();
+
                    running = false;
-                   return;
+
                 }
                 default -> System.out.println("  Invalid choice.");
             }
         }
-        sc.close();
+
     }
     private void printClientMenu() {
         System.out.println("""
@@ -787,6 +785,8 @@ public class Main {
         Main app = new Main();
         app.setupDemoData();
         app.runHappyPathDemo();
-        app.runMenu();
+        Scanner sc = new Scanner(System.in);
+        app.runMenu(sc);
+        sc.close();
     }
 }
