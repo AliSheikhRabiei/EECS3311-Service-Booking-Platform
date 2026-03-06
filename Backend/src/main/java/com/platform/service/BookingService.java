@@ -38,6 +38,7 @@ public class BookingService {
     private final PaymentService      paymentService;
     private final PolicyManager       policyManager;
 
+
     private final AtomicInteger idCounter = new AtomicInteger(1);
 
     public BookingService(BookingRepository   bookingRepository,

@@ -2,6 +2,7 @@ package com.platform.domain;
 
 import com.platform.payment.PaymentTransaction;
 import com.platform.state.BookingState;
+import com.platform.state.PendingPaymentState;
 import com.platform.state.RequestedState;
 
 import java.time.LocalDateTime;
@@ -49,7 +50,8 @@ public class Booking {
     }
 
     /** Consultant accepts → CONFIRMED (then service layer moves to PENDING_PAYMENT). */
-    public void confirm() { state.confirm(this); }
+    public void confirm() { state.confirm(this);
+    }
 
     /** Consultant rejects → REJECTED. */
     public void reject(String reason) { state.reject(this, reason); }

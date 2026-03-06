@@ -1,7 +1,9 @@
 package com.platform.payment;
+import java.util.Scanner;
 
 import com.platform.domain.Client;
 
+import javax.crypto.spec.PSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ public class PaymentMethodService {
                 ? "[PaymentMethodService] Removed method " + methodId
                 : "[PaymentMethodService] Method not found: " + methodId);
     }
+
 
     /** UC6 – Lists all saved payment methods for a client. */
     public List<PaymentMethod> listMethods(Client client) {
