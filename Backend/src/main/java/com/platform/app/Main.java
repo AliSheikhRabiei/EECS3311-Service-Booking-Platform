@@ -40,31 +40,31 @@ import java.util.stream.Collectors;
 public class Main {
 
     // ── Shared services ──────────────────────────────────────────────────────
-    private final PolicyManager       policyManager;
+    private final PolicyManager policyManager;
     private final NotificationService notificationService;
-    private final ServiceCatalog      catalog;
+    private final ServiceCatalog catalog;
     private final AvailabilityService availabilityService;
-    private final BookingRepository   bookingRepository;
-    private final PaymentService      paymentService;
+    private final BookingRepository bookingRepository;
+    private final PaymentService paymentService;
     private final PaymentMethodService paymentMethodService;
-    private final BookingService      bookingService;
-    private final Admin               admin;
+    private final BookingService bookingService;
+    private final Admin admin;
 
     // ── Demo fixtures ────────────────────────────────────────────────────────
-    private Client     demoClient;
+    private Client demoClient;
     private Consultant demoConsultant;
-    private Service    demoService1, demoService2;
-    private TimeSlot   demoSlot1, demoSlot2;
+    private Service demoService1, demoService2;
+    private TimeSlot demoSlot1, demoSlot2;
 
     public Main() {
-        policyManager        = PolicyManager.getInstance();
-        notificationService  = new NotificationService();
-        catalog              = new ServiceCatalog();
-        availabilityService  = new AvailabilityService();
-        bookingRepository    = new BookingRepository();
-        paymentService       = new PaymentService(policyManager, notificationService);
+        policyManager = PolicyManager.getInstance();
+        notificationService = new NotificationService();
+        catalog = new ServiceCatalog();
+        availabilityService = new AvailabilityService();
+        bookingRepository = new BookingRepository();
+        paymentService = new PaymentService(policyManager, notificationService);
         paymentMethodService = new PaymentMethodService();
-        bookingService       = new BookingService(
+        bookingService = new BookingService(
                 bookingRepository, availabilityService,
                 notificationService, paymentService, policyManager);
         admin = new Admin("A1", "Alice Admin", "admin@platform.com");
@@ -89,7 +89,7 @@ public class Main {
         demoService1 = new Service("S1", "Java Tutoring",
                 "One-on-one Java coaching for students and developers", 60, 100.0, demoConsultant);
         demoService2 = new Service("S2", "Career Coaching",
-                "Resume review, mock interviews and career planning",  45,  75.0, demoConsultant);
+                "Resume review, mock interviews and career planning", 45, 75.0, demoConsultant);
 
         demoConsultant.addService(demoService1);
         demoConsultant.addService(demoService2);
@@ -197,7 +197,7 @@ public class Main {
     //  INTERACTIVE MENU
     // ─────────────────────────────────────────────────────────────────────────
 
-    private void runMenu() {
+    /*private void runMenu() {
         Scanner sc = new Scanner(System.in);
         boolean running = true;
 
@@ -207,26 +207,171 @@ public class Main {
             String input = sc.nextLine().trim();
 
             switch (input) {
-                case "1"  -> menuBrowseServices();
-                case "2"  -> menuRequestBooking(sc);
-                case "3"  -> menuConsultantDecision(sc);
-                case "4"  -> menuProcessPayment(sc);
-                case "5"  -> menuViewBookingHistory();
-                case "6"  -> menuManagePaymentMethods(sc);
-                case "7"  -> menuViewPaymentHistory();
-                case "8"  -> menuAdminApprove(sc);
-                case "9"  -> menuAdminPolicy(sc);
+                case "1" -> menuBrowseServices();
+                case "2" -> menuRequestBooking(sc);
+                case "3" -> menuConsultantDecision(sc);
+                case "4" -> menuProcessPayment(sc);
+                case "5" -> menuViewBookingHistory();
+                case "6" -> menuManagePaymentMethods(sc);
+                case "7" -> menuViewPaymentHistory();
+                case "8" -> menuAdminApprove(sc);
+                case "9" -> menuAdminPolicy(sc);
                 case "10" -> menuCompleteBooking(sc);
                 case "11" -> menuCancelBooking(sc);
                 case "12" -> menuManageAvailability(sc);
-                case "0"  -> { System.out.println("Goodbye!"); running = false; }
-                default   -> System.out.println("  Invalid choice.");
+                case "0" -> {
+                    System.out.println("Goodbye!");
+                    running = false;
+                }
+                default -> System.out.println("  Invalid choice.");
             }
         }
         sc.close();
+    }*/
+
+    private void runMenu(Scanner sc) {
+
+        boolean running = true;
+
+        while (running) {
+            System.out.println("Choose user type 1.Admin 2.Consultant 3.Client 0.Exit");
+
+            switch (sc.nextLine().trim()) {
+                case "1" -> runAdminMenu(sc);
+                case "2" -> runConsulMenu(sc);
+                case "3" -> runClientMenu(sc);
+                case "0" -> {
+                    System.out.println("Goodbye!");
+                    running = false;
+
+                }
+                default -> System.out.println("Invalid choice");
+
+            }
+        }
     }
 
+    private void runAdminMenu(Scanner sc) {
+
+
+        boolean running = true;
+
+        while (running) {
+            printAdminMenu();
+            System.out.print("Choice: ");
+            String input = sc.nextLine().trim();
+
+            switch (input) {
+
+                case "8" -> menuAdminApprove(sc);
+                case "9" -> menuAdminPolicy(sc);
+                case "0" -> {
+
+                   running = false;
+                }
+                default -> System.out.println("  Invalid choice.");
+            }
+        }
+
+    }
+    private void printAdminMenu() {
+
+        System.out.println("""
+
+                ┌─────────────────────────────────────────────┐
+                │   Service Booking & Consulting Platform     │
+                ├─────────────────────────────────────────────┤
+                │  8.  Admin: Approve Consultant (UC11)       │
+                │  9.  Admin: Set Cancellation Policy (UC12)  │
+                │  0.  Exit                                   │
+                └─────────────────────────────────────────────┘""");
+    }
+
+
+
+    private void runConsulMenu(Scanner sc) {
+
+
+        boolean running = true;
+
+        while (running) {
+            printConsulMenu();
+            System.out.print("Choice: ");
+            String input = sc.nextLine().trim();
+
+            switch (input) {
+                case "3" -> menuConsultantDecision(sc);
+                case "10" -> menuCompleteBooking(sc);
+                case "12" -> menuManageAvailability(sc);
+                case "0" -> {
+                  running = false;
+
+                }
+                default -> System.out.println("  Invalid choice.");
+            }
+        }
+
+
+    }
+    private void printConsulMenu() {
+        System.out.println("""
+
+                ┌─────────────────────────────────────────────┐
+                │   Service Booking & Consulting Platform     │
+                ├─────────────────────────────────────────────┤
+                │  3.  Consultant Accept/Reject (UC9)         │
+                │  10. Complete Booking (UC10)                │
+                │  12. Manage Availability / Slots (UC8)      │
+                │  0.  Exit                                   │
+                └─────────────────────────────────────────────┘""");
+    }
+
+    private void runClientMenu(Scanner sc) {
+        boolean running = true;
+
+        while (running) {
+            printClientMenu();
+            System.out.print("Choice: ");
+            String input = sc.nextLine().trim();
+
+            switch (input) {
+                case "1" -> menuBrowseServices();
+                case "2" -> menuRequestBooking(sc);
+                case "4" -> menuProcessPayment(sc);
+                case "5" -> menuViewBookingHistory();
+                case "6" -> menuManagePaymentMethods(sc);
+                case "7" -> menuViewPaymentHistory();
+                case "11" -> menuCancelBooking(sc);
+                case "0" -> {
+
+                   running = false;
+
+                }
+                default -> System.out.println("  Invalid choice.");
+            }
+        }
+
+    }
+    private void printClientMenu() {
+        System.out.println("""
+
+                ┌─────────────────────────────────────────────┐
+                │   Service Booking & Consulting Platform     │
+                ├─────────────────────────────────────────────┤
+                │  1.  Browse Services (UC1)                  │
+                │  2.  Request Booking  (UC2)                 │
+                │  4.  Process Payment  (UC5)                 │
+                │  5.  View Booking History (UC4)             │
+                │  6.  Manage Payment Methods (UC6)           │
+                │  7.  View Payment History (UC7)             │
+                │  11. Cancel Booking (UC3)                   │
+                │  0.  Exit                                   │
+                └─────────────────────────────────────────────┘""");
+    }
+
+
     private void printMenu() {
+
         System.out.println("""
 
                 ┌─────────────────────────────────────────────┐
@@ -247,6 +392,8 @@ public class Main {
                 │  0.  Exit                                   │
                 └─────────────────────────────────────────────┘""");
     }
+
+
 
     // ── Menu handlers ─────────────────────────────────────────────────────────
 
@@ -408,6 +555,7 @@ public class Main {
         Consultant c = new Consultant(cid, name, name.toLowerCase() + "@example.com", "");
         admin.approveConsultantRegistration(c, ok);
     }
+
 
     private void menuAdminPolicy(Scanner sc) {
         System.out.println("\n── Admin: Configure Policies (UC12) ──────────");
@@ -637,6 +785,8 @@ public class Main {
         Main app = new Main();
         app.setupDemoData();
         app.runHappyPathDemo();
-        app.runMenu();
+        Scanner sc = new Scanner(System.in);
+        app.runMenu(sc);
+        sc.close();
     }
 }
