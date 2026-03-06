@@ -470,16 +470,39 @@ public class Main {
         System.out.println("  a) Add Credit Card");
         System.out.println("  b) Add PayPal");
         System.out.println("  c) Add Bank Transfer");
-        System.out.println("  d) List methods");
-        System.out.println("  e) Remove method");
+        System.out.println("  d) Add Debit Card");
+        System.out.println("  e) Update Credit Card");
+        System.out.println("  f) Update PayPal");
+        System.out.println("  g) Update Bank Transfer");
+        System.out.println("  h) Update Debit Card");
+        System.out.println("  i) List methods");
+        System.out.println("  j) Remove method");
         System.out.print("  Choice: ");
         switch (sc.nextLine().trim().toLowerCase()) {
             case "a" -> addCreditCard(sc);
             case "b" -> addPayPal(sc);
             case "c" -> addBankTransfer(sc);
-            case "d" -> paymentMethodService.listMethods(demoClient)
-                    .forEach(m -> System.out.println("  [" + m.getMethodId() + "] " + m));
+            case "d" -> addDebitCard(sc);
             case "e" -> {
+                System.out.println("Provide the Method ID");
+                updateCreditCard(sc, sc.nextLine());
+            }
+            case "f" -> {
+                System.out.println("Provide the Method ID");
+                updatePayPal(sc, sc.nextLine());
+            }
+            case "g" -> {
+                System.out.println("Provide the Method ID");
+                    updateBankTransfer(sc, sc.nextLine());
+
+            }
+            case "h" -> {
+                System.out.println("Provide the Method ID");
+                updateDebitCard(sc, sc.nextLine());
+            }
+            case "i" -> paymentMethodService.listMethods(demoClient)
+                    .forEach(m -> System.out.println("  [" + m.getMethodId() + "] " + m));
+            case "j" -> {
                 System.out.print("  Method ID to remove: ");
                 paymentMethodService.removeMethod(demoClient, sc.nextLine().trim());
             }
@@ -496,6 +519,15 @@ public class Main {
         if (!cc.validate()) { System.out.println("  Invalid credit card details."); return; }
         paymentMethodService.addMethod(demoClient, cc);
     }
+    private void updateCreditCard(Scanner sc, String methodId) {
+        System.out.print("  Card number (16 digits): "); String num = sc.nextLine().trim();
+        System.out.print("  Expiry (MM/yy): ");           String exp = sc.nextLine().trim();
+        System.out.print("  CVV (3-4 digits): ");         String cvv = sc.nextLine().trim();
+        CreditCardMethod cc = new CreditCardMethod(demoClient, methodId, num, exp, cvv);
+        if (!cc.validate()) { System.out.println("  Invalid credit card details."); return; }
+        paymentMethodService.removeMethod(demoClient, methodId);
+        paymentMethodService.addMethod(demoClient, cc);
+    }
 
     private void addPayPal(Scanner sc) {
         System.out.print("  PayPal email: ");
@@ -503,6 +535,14 @@ public class Main {
         String id = "PM-" + System.currentTimeMillis();
         PayPalMethod pp = new PayPalMethod(demoClient, id, email);
         if (!pp.validate()) { System.out.println("  Invalid PayPal email."); return; }
+        paymentMethodService.addMethod(demoClient, pp);
+    }
+    private void updatePayPal(Scanner sc, String methodId) {
+        System.out.print("  PayPal email: ");
+        String email = sc.nextLine().trim();
+        PayPalMethod pp = new PayPalMethod(demoClient, methodId, email);
+        if (!pp.validate()) { System.out.println("  Invalid PayPal email."); return; }
+        paymentMethodService.removeMethod(demoClient, methodId);
         paymentMethodService.addMethod(demoClient, pp);
     }
 
@@ -514,7 +554,32 @@ public class Main {
         if (!bt.validate()) { System.out.println("  Invalid bank transfer details."); return; }
         paymentMethodService.addMethod(demoClient, bt);
     }
+    private void updateBankTransfer(Scanner sc, String methodId) {
+        System.out.print("  Account number (8-17 digits): "); String acct = sc.nextLine().trim();
+        System.out.print("  Routing number (9 digits): ");    String rout = sc.nextLine().trim();
+        BankTransferMethod bt = new BankTransferMethod(demoClient, methodId, acct, rout);
+        if (!bt.validate()) { System.out.println("  Invalid bank transfer details."); return; }
+                paymentMethodService.removeMethod(demoClient, methodId);
+        paymentMethodService.addMethod(demoClient, bt);
 
+    }
+    private void addDebitCard(Scanner sc) {
+        System.out.print("  Card number (16 digits): "); String num = sc.nextLine().trim();
+        System.out.print("  Expiry (MM/yy): ");           String exp = sc.nextLine().trim();
+        String id = "PM-" + System.currentTimeMillis();
+        DebitCardMethod dd = new DebitCardMethod(demoClient, id, num, exp);
+        if (!dd.validate()) { System.out.println("  Invalid debit card details."); return; }
+        paymentMethodService.addMethod(demoClient, dd);
+    }
+    private void updateDebitCard(Scanner sc, String methodId) {
+        System.out.print("  Card number (16 digits): "); String num = sc.nextLine().trim();
+        System.out.print("  Expiry (MM/yy): ");           String exp = sc.nextLine().trim();
+        String id = "PM-" + System.currentTimeMillis();
+        DebitCardMethod dd = new DebitCardMethod(demoClient, id, num, exp);
+        if (!dd.validate()) { System.out.println("  Invalid debit card details."); return; }
+        paymentMethodService.removeMethod(demoClient, methodId);
+        paymentMethodService.addMethod(demoClient, dd);
+    }
     private void menuViewPaymentHistory() {
         System.out.println("\n── Payment History for " + demoClient.getName() + " ─────────────");
         List<PaymentTransaction> history = paymentService.getPaymentHistory(demoClient);
