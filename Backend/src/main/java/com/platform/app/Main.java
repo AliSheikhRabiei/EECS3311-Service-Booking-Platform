@@ -79,10 +79,12 @@ public class Main {
 
         // Consultant
         demoConsultant = new Consultant("C1", "Bob Consultant", "bob@example.com", "Java & Systems Expert");
+        admin.consultantRepository.save(demoConsultant);
         demoConsultant.setRegistrationStatus(RegistrationStatus.APPROVED);
 
         // Pending consultant (for UC11 demo)
         Consultant pendingConsultant = new Consultant("C2", "Carol Pending", "carol@example.com", "Career Coach");
+
         // stays PENDING
 
         // Services
@@ -95,6 +97,7 @@ public class Main {
         demoConsultant.addService(demoService2);
         catalog.addService(demoService1);
         catalog.addService(demoService2);
+
 
         // Time slots (tomorrow and day after)
         demoSlot1 = new TimeSlot(
@@ -193,42 +196,6 @@ public class Main {
         separator("DEMO COMPLETE — entering interactive menu");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  INTERACTIVE MENU
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /*private void runMenu() {
-        Scanner sc = new Scanner(System.in);
-        boolean running = true;
-
-        while (running) {
-            printMenu();
-            System.out.print("Choice: ");
-            String input = sc.nextLine().trim();
-
-            switch (input) {
-                case "1" -> menuBrowseServices();
-                case "2" -> menuRequestBooking(sc);
-                case "3" -> menuConsultantDecision(sc);
-                case "4" -> menuProcessPayment(sc);
-                case "5" -> menuViewBookingHistory();
-                case "6" -> menuManagePaymentMethods(sc);
-                case "7" -> menuViewPaymentHistory();
-                case "8" -> menuAdminApprove(sc);
-                case "9" -> menuAdminPolicy(sc);
-                case "10" -> menuCompleteBooking(sc);
-                case "11" -> menuCancelBooking(sc);
-                case "12" -> menuManageAvailability(sc);
-                case "0" -> {
-                    System.out.println("Goodbye!");
-                    running = false;
-                }
-                default -> System.out.println("  Invalid choice.");
-            }
-        }
-        sc.close();
-    }*/
-
     private void runMenu(Scanner sc) {
 
         boolean running = true;
@@ -263,8 +230,8 @@ public class Main {
 
             switch (input) {
 
-                case "8" -> menuAdminApprove(sc);
-                case "9" -> menuAdminPolicy(sc);
+                case "1" -> menuAdminApprove(sc);
+                case "2" -> menuAdminPolicy(sc);
                 case "0" -> {
 
                    running = false;
@@ -281,8 +248,8 @@ public class Main {
                 ┌─────────────────────────────────────────────┐
                 │   Service Booking & Consulting Platform     │
                 ├─────────────────────────────────────────────┤
-                │  8.  Admin: Approve Consultant (UC11)       │
-                │  9.  Admin: Set Cancellation Policy (UC12)  │
+                │  1.  Admin: Approve Consultant (UC11)       │
+                │  2.  Admin: Set Cancellation Policy (UC12)  │
                 │  0.  Exit                                   │
                 └─────────────────────────────────────────────┘""");
     }
@@ -300,9 +267,10 @@ public class Main {
             String input = sc.nextLine().trim();
 
             switch (input) {
-                case "3" -> menuConsultantDecision(sc);
-                case "10" -> menuCompleteBooking(sc);
-                case "12" -> menuManageAvailability(sc);
+                case "1" -> menuConsultantDecision(sc);
+                case "2" -> menuCompleteBooking(sc);
+                case "3" -> menuManageAvailability(sc);
+                case "4" -> addService(sc);
                 case "0" -> {
                   running = false;
 
@@ -319,9 +287,10 @@ public class Main {
                 ┌─────────────────────────────────────────────┐
                 │   Service Booking & Consulting Platform     │
                 ├─────────────────────────────────────────────┤
-                │  3.  Consultant Accept/Reject (UC9)         │
-                │  10. Complete Booking (UC10)                │
-                │  12. Manage Availability / Slots (UC8)      │
+                │  1.  Consultant Accept/Reject (UC9)         │
+                │  2. Complete Booking (UC10)                │
+                │  3. Manage Availability / Slots (UC8)      
+                │  4. Add a new Service
                 │  0.  Exit                                   │
                 └─────────────────────────────────────────────┘""");
     }
@@ -337,11 +306,11 @@ public class Main {
             switch (input) {
                 case "1" -> menuBrowseServices();
                 case "2" -> menuRequestBooking(sc);
-                case "4" -> menuProcessPayment(sc);
-                case "5" -> menuViewBookingHistory();
-                case "6" -> menuManagePaymentMethods(sc);
-                case "7" -> menuViewPaymentHistory();
-                case "11" -> menuCancelBooking(sc);
+                case "3" -> menuProcessPayment(sc);
+                case "4" -> menuViewBookingHistory();
+                case "5" -> menuManagePaymentMethods(sc);
+                case "6" -> menuViewPaymentHistory();
+                case "7" -> menuCancelBooking(sc);
                 case "0" -> {
 
                    running = false;
@@ -360,11 +329,11 @@ public class Main {
                 ├─────────────────────────────────────────────┤
                 │  1.  Browse Services (UC1)                  │
                 │  2.  Request Booking  (UC2)                 │
-                │  4.  Process Payment  (UC5)                 │
-                │  5.  View Booking History (UC4)             │
-                │  6.  Manage Payment Methods (UC6)           │
-                │  7.  View Payment History (UC7)             │
-                │  11. Cancel Booking (UC3)                   │
+                │  3.  Process Payment  (UC5)                 │
+                │  4.  View Booking History (UC4)             │
+                │  5.  Manage Payment Methods (UC6)           │
+                │  6.  View Payment History (UC7)             │
+                │  7. Cancel Booking (UC3)                   │
                 │  0.  Exit                                   │
                 └─────────────────────────────────────────────┘""");
     }
@@ -433,7 +402,14 @@ public class Main {
 
     private void menuConsultantDecision(Scanner sc) {
         System.out.println("\n── Consultant Accept/Reject ──────────────────");
-        List<Booking> pending = bookingService.getBookingsForConsultant(demoConsultant)
+        System.out.println("provide consultant id");
+        String id = sc.nextLine();
+        Consultant consultant = admin.consultantRepository.findById(id);
+        if(consultant == null) {
+            System.out.println("Invalid input");
+            return;
+        }
+        List<Booking> pending = bookingService.getBookingsForConsultant(consultant)
                 .stream().filter(b -> b.getState().getClass().getSimpleName().equals("RequestedState"))
                 .collect(Collectors.toList());
         if (pending.isEmpty()) { System.out.println("  No pending booking requests."); return; }
@@ -673,9 +649,16 @@ public class Main {
 
     private void menuManageAvailability(Scanner sc) {
         System.out.println("\n── Manage Availability / Time Slots (UC8) ────");
-        System.out.println("  Consultant: " + demoConsultant.getName());
+        System.out.println("provide consultant id");
+        String id = sc.nextLine();
+        Consultant consultant = admin.consultantRepository.findById(id);
+        if(consultant == null) {
+            System.out.println("Invalid input");
+            return;
+        }
+        System.out.println("  Consultant: " + consultant.getName());
 
-        List<TimeSlot> all = availabilityService.listAllSlots(demoConsultant);
+        List<TimeSlot> all = availabilityService.listAllSlots(consultant);
         System.out.println("  Current slots (" + all.size() + "):");
         if (all.isEmpty()) {
             System.out.println("    (none)");
@@ -705,7 +688,7 @@ public class Main {
                     LocalDateTime start = LocalDateTime.parse(raw, fmt);
                     LocalDateTime end   = start.plusHours(1);
                     TimeSlot slot = new TimeSlot(start, end);
-                    availabilityService.addTimeSlot(demoConsultant, slot);
+                    availabilityService.addTimeSlot(consultant, slot);
                     System.out.println("  ✓ 1-hour slot added: " + slot.getSlotId());
                 } catch (DateTimeParseException e) {
                     System.out.println("  ✗ Invalid format. Use yyyy-MM-dd HH:mm  e.g. 2026-04-01 09:00");
@@ -724,12 +707,12 @@ public class Main {
                     int hours = Integer.parseInt(rawHours);
                     if (hours < 1) { System.out.println("  ✗ Hours must be at least 1."); return; }
                     LocalDateTime end = start.plusHours(hours);
-                    int added = availabilityService.addTimeSlotBlock(demoConsultant, start, end);
+                    int added = availabilityService.addTimeSlotBlock(consultant, start, end);
                     System.out.println("  ✓ Block split into " + added + " one-hour slot(s).");
                     // Print the newly added slots
-                    availabilityService.listAllSlots(demoConsultant).stream()
+                    availabilityService.listAllSlots(consultant).stream()
                             .filter(TimeSlot::isAvailable)
-                            .skip(Math.max(0, availabilityService.listAllSlots(demoConsultant).size() - added))
+                            .skip(Math.max(0, availabilityService.listAllSlots(consultant).size() - added))
                             .forEach(s -> System.out.println("    → " + s.getSlotId()));
                 } catch (DateTimeParseException e) {
                     System.out.println("  ✗ Invalid datetime format. Use yyyy-MM-dd HH:mm");
@@ -750,7 +733,7 @@ public class Main {
                         System.out.println("  ✗ Cannot remove a RESERVED slot (a booking exists for it).");
                         return;
                     }
-                    availabilityService.removeTimeSlot(demoConsultant, toRemove.getSlotId());
+                    availabilityService.removeTimeSlot(consultant, toRemove.getSlotId());
                     System.out.println("  ✓ Slot removed: " + toRemove.getSlotId());
                 } catch (NumberFormatException e) {
                     System.out.println("  ✗ Invalid number.");
@@ -758,6 +741,33 @@ public class Main {
             }
             default -> System.out.println("  Invalid choice.");
         }
+    }
+    private void addService(Scanner sc) {
+        System.out.println("provide consultant id");
+        String id = sc.nextLine();
+        Consultant consultant = admin.consultantRepository.findById(id);
+        if(consultant == null) {
+            System.out.println("Invalid input");
+            return;
+        }   try {
+            System.out.println("Provide Service Id");
+            String Id = sc.nextLine();
+            System.out.println("Provide Service title");
+            String title = sc.nextLine();
+            System.out.println("Provide Service description");
+            String description = sc.nextLine();
+            System.out.println("Provide Service duration");
+            int duration = Integer.parseInt(sc.nextLine());
+            System.out.println("Provide Service price");
+            double price = Double.parseDouble(sc.nextLine());
+            Service service = new Service(id, title, description, duration, price, consultant);
+            catalog.addService(service);
+            consultant.addService(service);
+        } catch (Exception e) {
+            System.out.println("Invalid input");
+        }
+
+
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

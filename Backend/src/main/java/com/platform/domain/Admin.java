@@ -5,6 +5,8 @@ import com.platform.policy.NotificationPolicy;
 import com.platform.policy.PolicyManager;
 import com.platform.policy.PricingStrategy;
 import com.platform.policy.RefundPolicy;
+import com.platform.repository.ConsultantRepository;
+import com.platform.service.RegistrationService;
 
 /**
  * System administrator: approves consultant registrations (UC11) and
@@ -14,10 +16,13 @@ import com.platform.policy.RefundPolicy;
 public class Admin extends User {
 
     private final PolicyManager policyManager;
+    public final ConsultantRepository consultantRepository;
+
 
     public Admin(String id, String name, String email) {
         super(id, name, email);
         this.policyManager = PolicyManager.getInstance();
+        this.consultantRepository = new ConsultantRepository();
     }
 
     /**
@@ -30,6 +35,7 @@ public class Admin extends User {
         if (consultant == null) throw new IllegalArgumentException("Consultant must not be null.");
         RegistrationStatus newStatus = approve ? RegistrationStatus.APPROVED : RegistrationStatus.REJECTED;
         consultant.setRegistrationStatus(newStatus);
+        if(approve) consultantRepository.save(consultant);
         System.out.println("[Admin] " + consultant.getName() + " registration → " + newStatus);
     }
 
@@ -41,6 +47,9 @@ public class Admin extends User {
         // TODO: resolve consultant from repository and call overload above
         System.out.println("[Admin] approveConsultantRegistration(id=" + consultantId
                 + ", approve=" + approve + ") – resolve consultant from repository.");
+        if(approve) {
+
+        }
     }
 
     /** UC12 – Configure cancellation rules. */
