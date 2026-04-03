@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – Service Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-brand">📅 Service Booking <span>Admin Portal</span></div>
+    <div class="navbar-right">
+        <span class="navbar-user user-name-display"></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+</nav>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="tab-consultants" onclick="switchTab('tab-consultants');loadConsultants()">Consultants (UC11)</button>
+    <button class="tab-btn"        data-tab="tab-policies"    onclick="switchTab('tab-policies');loadPolicies()">Policies (UC12)</button>
+    <button class="tab-btn"        data-tab="tab-overview"    onclick="switchTab('tab-overview');loadOverview()">System Overview</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 1 – Consultants (UC11)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-consultants" class="page active">
+    <div class="section-header">
+        <h2>Consultant Registrations (UC11)</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadConsultants()">↻ Refresh</button>
+    </div>
+    <div id="alertConsultants" class="alert"></div>
+
+    <div class="card">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Bio</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="consultantsTable">
+                    <tr><td colspan="5"><div class="empty"><p>No consultants registered yet.</p></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 2 – Policies (UC12)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-policies" class="page">
+    <div class="section-header">
+        <h2>System Policies (UC12)</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadPolicies()">↻ Refresh</button>
+    </div>
+    <div id="alertPolicies" class="alert"></div>
+
+    <!-- Current policies display -->
+    <div class="card">
+        <div class="card-title">Current Active Policies</div>
+        <div id="currentPolicies">
+            <div class="empty"><p>Loading…</p></div>
+        </div>
+    </div>
+
+    <!-- Cancellation Policy -->
+    <div class="card">
+        <div class="card-title">Cancellation Policy</div>
+        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem">
+            Controls whether clients are allowed to cancel bookings.
+        </p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="setPolicy('cancellation','DEFAULT')">
+                Default — Cancellations allowed, no fee
+            </button>
+            <button class="btn btn-danger" onclick="setPolicy('cancellation','STRICT')">
+                Strict — No cancellations allowed
+            </button>
+        </div>
+    </div>
+
+    <!-- Refund Policy -->
+    <div class="card">
+        <div class="card-title">Refund Policy</div>
+        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem">
+            Controls how much of the payment is refunded when a paid booking is cancelled.
+        </p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="setPolicy('refund','DEFAULT')">
+                Default — 80% refund
+            </button>
+            <button class="btn btn-success" onclick="setPolicy('refund','FULL')">
+                Full — 100% refund
+            </button>
+            <button class="btn btn-danger" onclick="setPolicy('refund','NONE')">
+                None — 0% refund
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 3 – System Overview
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-overview" class="page">
+    <div class="section-header"><h2>System Overview</h2></div>
+    <div id="alertOverview" class="alert"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
+        <div class="card" style="text-align:center;margin-bottom:0">
+            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statServices">—</div>
+            <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Total Services</div>
+        </div>
+        <div class="card" style="text-align:center;margin-bottom:0">
+            <div style="font-size:2rem;font-weight:700;color:var(--green)" id="statApproved">—</div>
+            <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Approved Consultants</div>
+        </div>
+        <div class="card" style="text-align:center;margin-bottom:0">
+            <div style="font-size:2rem;font-weight:700;color:var(--yellow)" id="statPending">—</div>
+            <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Pending Approvals</div>
+        </div>
+        <div class="card" style="text-align:center;margin-bottom:0">
+            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statBookings">—</div>
+            <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Total Bookings</div>
+        </div>
+    </div>
+
+    <!-- All bookings table -->
+    <div class="card">
+        <div class="card-title">All Bookings</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Consultant</th><th>Slot</th><th>Status</th></tr>
+                </thead>
+                <tbody id="allBookingsTable">
+                    <tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+const user = requireAuth('ADMIN');
+if (user) renderNavbar(user);
+
+// ── Tab 1: Consultants ────────────────────────────────────────
+
+async function loadConsultants() {
+    try {
+        const consultants = await api.get('/admin/consultants');
+        const tbody = document.getElementById('consultantsTable');
+        if (!consultants.length) {
+            tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>No consultant registrations yet.</p></div></td></tr>';
+            return;
+        }
+        tbody.innerHTML = consultants.map(c => `
+            <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.email}</td>
+                <td>${c.bio || '—'}</td>
+                <td>${statusBadge(c.registrationStatus)}</td>
+                <td>
+                    <div class="action-row">
+                        ${c.registrationStatus !== 'APPROVED' ? `
+                            <button class="btn btn-success btn-sm" onclick="approveConsultant('${c.id}')">Approve</button>
+                        ` : ''}
+                        ${c.registrationStatus !== 'REJECTED' ? `
+                            <button class="btn btn-danger btn-sm" onclick="rejectConsultant('${c.id}')">Reject</button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showAlert('alertConsultants', err.message);
+    }
+}
+
+function statusBadge(status) {
+    const map = { APPROVED: 'approved', PENDING: 'pending_reg', REJECTED: 'rejected' };
+    return `<span class="badge badge-${map[status] || 'pending_reg'}">${status}</span>`;
+}
+
+async function approveConsultant(id) {
+    try {
+        await api.post(`/admin/consultants/${id}/approve`, {});
+        showAlert('alertConsultants', 'Consultant approved.', 'success');
+        loadConsultants();
+    } catch (err) {
+        showAlert('alertConsultants', err.message);
+    }
+}
+
+async function rejectConsultant(id) {
+    try {
+        await api.post(`/admin/consultants/${id}/reject`, {});
+        showAlert('alertConsultants', 'Consultant rejected.', 'success');
+        loadConsultants();
+    } catch (err) {
+        showAlert('alertConsultants', err.message);
+    }
+}
+
+// ── Tab 2: Policies ───────────────────────────────────────────
+
+async function loadPolicies() {
+    try {
+        const policies = await api.get('/admin/policies');
+        document.getElementById('currentPolicies').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.875rem">
+                <div><strong>Cancellation:</strong> ${policies.cancellationPolicy}</div>
+                <div><strong>Refund:</strong> ${policies.refundPolicy}</div>
+                <div><strong>Notification:</strong> ${policies.notificationPolicy}</div>
+                <div><strong>Pricing:</strong> ${policies.pricingStrategy}</div>
+            </div>
+        `;
+    } catch (err) {
+        showAlert('alertPolicies', err.message);
+    }
+}
+
+async function setPolicy(policyType, type) {
+    try {
+        const result = await api.post(`/admin/policies/${policyType}`, { type });
+        showAlert('alertPolicies', result.message, 'success');
+        loadPolicies();
+    } catch (err) {
+        showAlert('alertPolicies', err.message);
+    }
+}
+
+// ── Tab 3: Overview ───────────────────────────────────────────
+
+async function loadOverview() {
+    try {
+        const [services, consultants, bookings] = await Promise.all([
+            api.get('/services'),
+            api.get('/admin/consultants'),
+            api.get('/bookings'),
+        ]);
+
+        document.getElementById('statServices').textContent = services.length;
+        document.getElementById('statApproved').textContent = consultants.filter(c => c.registrationStatus === 'APPROVED').length;
+        document.getElementById('statPending').textContent  = consultants.filter(c => c.registrationStatus === 'PENDING').length;
+        document.getElementById('statBookings').textContent = bookings.length;
+
+        const tbody = document.getElementById('allBookingsTable');
+        if (!bookings.length) {
+            tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>';
+            return;
+        }
+        tbody.innerHTML = bookings.map(b => `
+            <tr>
+                <td><code>${b.bookingId}</code></td>
+                <td>${b.clientName}</td>
+                <td>${b.serviceTitle}</td>
+                <td>${b.consultantName}</td>
+                <td>${fmtSlot(b.slotStart)}</td>
+                <td>${badge(b.status)}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showAlert('alertOverview', err.message);
+    }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadConsultants();
+</script>
+</body>
+</html>

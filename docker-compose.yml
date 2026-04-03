@@ -1,0 +1,56 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: booking_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       booking_platform
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d booking_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: booking_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      PORT:           8080
+      DB_URL:         jdbc:postgresql://db:5432/booking_platform
+      DB_USER:        postgres
+      DB_PASSWORD:    postgres
+      ADMIN_EMAIL:    admin@platform.com
+      ADMIN_PASSWORD: admin123
+      # ── AI Customer Assistant ──────────────────────────────────
+      # Put your real OpenAI key in a .env file (never in git)
+      # The backend reads this variable in ChatHandler.java
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: booking_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:

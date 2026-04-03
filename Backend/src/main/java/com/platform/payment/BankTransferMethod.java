@@ -27,6 +27,10 @@ public class BankTransferMethod extends PaymentMethod {
 
     @Override public String getMethodType() { return "BANK_TRANSFER"; }
 
+    // Getters needed by PaymentMethodRepository
+    public String getAccountNumber() { return accountNumber; }
+    public String getRoutingNumber() { return routingNumber; }
+
     @Override
     public String toString() {
         String masked = "****" + accountNumber.substring(Math.max(0, accountNumber.length() - 4));

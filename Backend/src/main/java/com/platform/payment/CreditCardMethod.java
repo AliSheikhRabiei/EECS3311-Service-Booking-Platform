@@ -46,6 +46,11 @@ public class CreditCardMethod extends PaymentMethod {
     @Override
     public String getMethodType() { return "CREDIT_CARD"; }
 
+    // Getters needed by PaymentMethodRepository to persist fields to DB
+    public String getCardNumber() { return cardNumber; }
+    public String getExpiry()     { return expiry; }
+    public String getCvv()        { return cvv; }
+
     @Override
     public String toString() {
         return "CreditCard[****" + cardNumber.substring(12) + ", exp=" + expiry + "]";

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultant Dashboard – Service Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-brand">📅 Service Booking <span>Consultant Portal</span></div>
+    <div class="navbar-right">
+        <span class="navbar-user user-name-display"></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+</nav>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="tab-bookings" onclick="switchTab('tab-bookings');loadBookings()">Booking Requests</button>
+    <button class="tab-btn"        data-tab="tab-slots"    onclick="switchTab('tab-slots');loadSlots()">My Availability</button>
+    <button class="tab-btn"        data-tab="tab-services" onclick="switchTab('tab-services');loadMyServices()">My Services</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 1 – Booking Requests (UC9, UC10)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-bookings" class="page active">
+    <div class="section-header">
+        <h2>Booking Requests</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadBookings()">↻ Refresh</button>
+    </div>
+    <div id="alertBookings" class="alert"></div>
+
+    <div class="card">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Client</th>
+                        <th>Service</th>
+                        <th>Slot</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingsTable">
+                    <tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 2 – Availability / Slots (UC8)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-slots" class="page">
+    <div class="section-header">
+        <h2>My Availability (UC8)</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadSlots()">↻ Refresh</button>
+    </div>
+    <div id="alertSlots" class="alert"></div>
+
+    <!-- Add single slot -->
+    <div class="card">
+        <div class="card-title">Add a Time Slot</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Start (YYYY-MM-DDThh:mm:ss)</label>
+                <input id="slotStart" class="form-control" placeholder="2026-06-01T10:00:00">
+            </div>
+            <div class="form-group">
+                <label>End (YYYY-MM-DDThh:mm:ss)</label>
+                <input id="slotEnd" class="form-control" placeholder="2026-06-01T11:00:00">
+            </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+            <button class="btn btn-primary" onclick="addSlot()">Add Slot</button>
+            <button class="btn btn-outline" onclick="addBlock()">Add Time Block (auto-split hourly)</button>
+        </div>
+    </div>
+
+    <!-- Slots table -->
+    <div class="card">
+        <div class="card-title">Current Slots</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Slot ID</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="slotsTable">
+                    <tr><td colspan="5"><div class="empty"><p>No slots added yet.</p></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 3 – My Services
+     ══════════════════════════════════════════════════════════════ -->
+<div id="tab-services" class="page">
+    <div class="section-header">
+        <h2>My Services</h2>
+    </div>
+    <div id="alertServices" class="alert"></div>
+
+    <div class="card">
+        <div class="card-title">Add a New Service</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Title</label>
+                <input id="svcTitle" class="form-control" placeholder="Java Tutoring">
+            </div>
+            <div class="form-group">
+                <label>Price ($)</label>
+                <input id="svcPrice" class="form-control" type="number" placeholder="100">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Duration (minutes)</label>
+                <input id="svcDuration" class="form-control" type="number" placeholder="60">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input id="svcDesc" class="form-control" placeholder="One-on-one coaching session">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="addService()">Add Service</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Current Services</div>
+        <div id="myServicesList">
+            <div class="empty"><p>No services yet.</p></div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+const user = requireAuth('CONSULTANT');
+if (user) renderNavbar(user);
+
+// ── Tab 1: Bookings ───────────────────────────────────────────
+
+async function loadBookings() {
+    try {
+        const bookings = await api.get('/bookings');
+        const tbody = document.getElementById('bookingsTable');
+        if (!bookings.length) {
+            tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>';
+            return;
+        }
+        tbody.innerHTML = bookings.map(b => `
+            <tr>
+                <td><code>${b.bookingId}</code></td>
+                <td>${b.clientName}</td>
+                <td>${b.serviceTitle}</td>
+                <td>${fmtSlot(b.slotStart)}</td>
+                <td>${badge(b.status)}</td>
+                <td>
+                    <div class="action-row">
+                        ${b.status === 'REQUESTED' ? `
+                            <button class="btn btn-success btn-sm" onclick="confirmBooking('${b.bookingId}')">Confirm</button>
+                            <button class="btn btn-danger btn-sm"  onclick="rejectBooking('${b.bookingId}')">Reject</button>
+                        ` : ''}
+                        ${b.status === 'PAID' ? `
+                            <button class="btn btn-primary btn-sm" onclick="completeBooking('${b.bookingId}')">Complete</button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showAlert('alertBookings', err.message);
+    }
+}
+
+async function confirmBooking(id) {
+    try {
+        const b = await api.post(`/bookings/${id}/confirm`, {});
+        showAlert('alertBookings', `Booking ${id} confirmed. Status: ${b.status}`, 'success');
+        loadBookings();
+    } catch (err) {
+        showAlert('alertBookings', err.message);
+    }
+}
+
+async function rejectBooking(id) {
+    const reason = prompt('Reason for rejection (optional):') || 'Rejected by consultant.';
+    try {
+        await api.post(`/bookings/${id}/reject`, { reason });
+        showAlert('alertBookings', `Booking ${id} rejected.`, 'success');
+        loadBookings();
+    } catch (err) {
+        showAlert('alertBookings', err.message);
+    }
+}
+
+async function completeBooking(id) {
+    if (!confirm(`Mark booking ${id} as COMPLETED?`)) return;
+    try {
+        const b = await api.post(`/bookings/${id}/complete`, {});
+        showAlert('alertBookings', `Booking ${id} completed. Status: ${b.status}`, 'success');
+        loadBookings();
+    } catch (err) {
+        showAlert('alertBookings', err.message);
+    }
+}
+
+// ── Tab 2: Slots ──────────────────────────────────────────────
+
+async function loadSlots() {
+    try {
+        const slots = await api.get('/slots');
+        const tbody = document.getElementById('slotsTable');
+        if (!slots.length) {
+            tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>No slots added yet.</p></div></td></tr>';
+            return;
+        }
+        tbody.innerHTML = slots.map(s => `
+            <tr>
+                <td><code>${s.id.substring(0,8)}…</code></td>
+                <td>${fmtSlot(s.start)}</td>
+                <td>${fmtSlot(s.end)}</td>
+                <td>${s.available ? badge('CONFIRMED') : badge('REQUESTED')}</td>
+                <td>
+                    ${s.available ? `<button class="btn btn-danger btn-sm" onclick="deleteSlot('${s.id}')">Remove</button>` : '<span style="color:var(--gray-400);font-size:.8rem">Reserved</span>'}
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showAlert('alertSlots', err.message);
+    }
+}
+
+async function addSlot() {
+    const start = document.getElementById('slotStart').value.trim();
+    const end   = document.getElementById('slotEnd').value.trim();
+    if (!start || !end) { showAlert('alertSlots', 'Please enter both start and end times.'); return; }
+    try {
+        await api.post('/slots', { start, end });
+        showAlert('alertSlots', 'Slot added.', 'success');
+        document.getElementById('slotStart').value = '';
+        document.getElementById('slotEnd').value   = '';
+        loadSlots();
+    } catch (err) {
+        showAlert('alertSlots', err.message);
+    }
+}
+
+async function addBlock() {
+    const start = document.getElementById('slotStart').value.trim();
+    const end   = document.getElementById('slotEnd').value.trim();
+    if (!start || !end) { showAlert('alertSlots', 'Please enter both start and end times for the block.'); return; }
+    try {
+        const result = await api.post('/slots/block', { start, end });
+        showAlert('alertSlots', result.message, 'success');
+        document.getElementById('slotStart').value = '';
+        document.getElementById('slotEnd').value   = '';
+        loadSlots();
+    } catch (err) {
+        showAlert('alertSlots', err.message);
+    }
+}
+
+async function deleteSlot(id) {
+    if (!confirm('Remove this slot?')) return;
+    try {
+        await api.delete(`/slots/${id}`);
+        loadSlots();
+    } catch (err) {
+        showAlert('alertSlots', err.message);
+    }
+}
+
+// ── Tab 3: Services ───────────────────────────────────────────
+
+async function loadMyServices() {
+    try {
+        const all = await api.get('/services');
+        const mine = all.filter(s => s.consultantId === user.userId);
+        const container = document.getElementById('myServicesList');
+        if (!mine.length) {
+            container.innerHTML = '<div class="empty"><p>No services added yet.</p></div>';
+            return;
+        }
+        container.innerHTML = `<div class="service-grid">${mine.map(s => `
+            <div class="service-card">
+                <h3>${s.title}</h3>
+                <div class="meta">${s.durationMin} min</div>
+                <div class="price">$${s.price.toFixed(2)}</div>
+                <p style="font-size:.8rem;color:var(--gray-600);margin-top:.5rem">${s.description}</p>
+            </div>
+        `).join('')}</div>`;
+    } catch (err) {
+        showAlert('alertServices', err.message);
+    }
+}
+
+async function addService() {
+    const title       = document.getElementById('svcTitle').value.trim();
+    const price       = document.getElementById('svcPrice').value.trim();
+    const durationMin = document.getElementById('svcDuration').value.trim();
+    const description = document.getElementById('svcDesc').value.trim();
+
+    if (!title || !price || !durationMin) {
+        showAlert('alertServices', 'Title, price, and duration are required.');
+        return;
+    }
+
+    try {
+        await api.post('/services', { title, description, durationMin, price });
+        showAlert('alertServices', `Service "${title}" added.`, 'success');
+        document.getElementById('svcTitle').value    = '';
+        document.getElementById('svcPrice').value    = '';
+        document.getElementById('svcDuration').value = '';
+        document.getElementById('svcDesc').value     = '';
+        loadMyServices();
+    } catch (err) {
+        showAlert('alertServices', err.message);
+    }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadBookings();
+</script>
+</body>
+</html>

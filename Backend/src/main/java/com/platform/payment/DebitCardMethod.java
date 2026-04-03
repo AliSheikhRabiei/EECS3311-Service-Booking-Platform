@@ -38,6 +38,10 @@ public class DebitCardMethod extends PaymentMethod {
     @Override
     public String getMethodType() { return "DEBIT_CARD"; }
 
+    // Getters needed by PaymentMethodRepository
+    public String getCardNumber() { return cardNumber; }
+    public String getExpiry()     { return expiry; }
+
     @Override
     public String toString() {
         return "DebitCard[****" + cardNumber.substring(12) + ", exp=" + expiry + "]";

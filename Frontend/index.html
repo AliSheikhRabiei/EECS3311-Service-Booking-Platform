@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=login.html">
+    <title>Service Booking Platform</title>
+</head>
+<body>
+    <script>
+        const role = localStorage.getItem('role');
+        const token = localStorage.getItem('token');
+        if (token && role) {
+            const map = { ADMIN: 'admin.html', CLIENT: 'client.html', CONSULTANT: 'consultant.html' };
+            window.location.href = map[role] || 'login.html';
+        } else {
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

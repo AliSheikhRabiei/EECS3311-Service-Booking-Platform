@@ -15,7 +15,7 @@ import com.platform.state.PaidState;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -38,8 +38,6 @@ public class BookingService {
     private final PaymentService      paymentService;
     private final PolicyManager       policyManager;
 
-
-    private final AtomicInteger idCounter = new AtomicInteger(1);
 
     public BookingService(BookingRepository   bookingRepository,
                           AvailabilityService availabilityService,
@@ -81,7 +79,7 @@ public class BookingService {
                     "The selected time slot is not available: " + slot);
         }
 
-        String bookingId = "BK-" + idCounter.getAndIncrement();
+        String bookingId = "BK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Booking booking = new Booking(bookingId, client, service, slot);
         slot.reserve();                            // lock the slot immediately
         bookingRepository.save(booking);

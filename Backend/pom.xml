@@ -7,9 +7,9 @@
 
     <groupId>com.platform</groupId>
     <artifactId>service-booking-platform</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <packaging>jar</packaging>
-    <name>Service Booking and Consulting Platform - Phase 1</name>
+    <name>Service Booking and Consulting Platform - Phase 2</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -25,11 +25,25 @@
             <version>5.10.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Gson: JSON for HTTP layer -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- PostgreSQL JDBC driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Run Main -->
+            <!-- Terminal demo entry point (Phase 1 unchanged) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -38,12 +52,40 @@
                     <mainClass>com.platform.app.Main</mainClass>
                 </configuration>
             </plugin>
-            <!-- JUnit 5 test runner -->
+
+            <!-- Fat JAR: bundles Gson + JDBC driver so java -jar works -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.platform.http.HttpServerLauncher</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- JUnit 5 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
             </plugin>
         </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
     </build>
 </project>
