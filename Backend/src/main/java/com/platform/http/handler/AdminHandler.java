@@ -14,16 +14,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Admin-only endpoints (UC11, UC12):
- *
- *   GET  /admin/consultants                       → list all consultants
- *   POST /admin/consultants/{id}/approve          → approve a consultant
- *   POST /admin/consultants/{id}/reject           → reject a consultant
- *   GET  /admin/policies                          → view current policy names
- *   POST /admin/policies/cancellation             → set cancellation policy { type: DEFAULT|STRICT }
- *   POST /admin/policies/refund                   → set refund policy       { type: DEFAULT|FULL|NONE }
- */
 public class AdminHandler extends BaseHandler {
 
     private static final String CTX = "/admin";
@@ -46,10 +36,8 @@ public class AdminHandler extends BaseHandler {
 
             if (parts.length >= 1 && parts[0].equals("consultants")) {
                 handleConsultants(ex, method, parts);
-
             } else if (parts.length >= 1 && parts[0].equals("policies")) {
                 handlePolicies(ex, method, parts);
-
             } else {
                 send404(ex, "Admin endpoint not found.");
             }
@@ -61,12 +49,8 @@ public class AdminHandler extends BaseHandler {
         }
     }
 
-    // ── /admin/consultants ────────────────────────────────────────────────────
-
     private void handleConsultants(HttpExchange ex, String method, String[] parts) throws IOException {
-
         if (parts.length == 1 && method.equals("GET")) {
-            // List all consultants
             List<Dtos.ConsultantDto> dtos = ctx.userRepository.findAllConsultants()
                     .stream().map(Dtos.ConsultantDto::new).collect(Collectors.toList());
             sendOk(ex, dtos);
@@ -81,16 +65,12 @@ public class AdminHandler extends BaseHandler {
                 case "approve" -> {
                     consultant.setRegistrationStatus(RegistrationStatus.APPROVED);
                     ctx.userRepository.updateConsultantStatus(consultantId, "APPROVED");
-                    JsonObject resp = new JsonObject();
-                    resp.addProperty("message", "Consultant approved.");
-                    sendOk(ex, resp);
+                    sendOk(ex, jsonMsg("Consultant approved."));
                 }
                 case "reject" -> {
                     consultant.setRegistrationStatus(RegistrationStatus.REJECTED);
                     ctx.userRepository.updateConsultantStatus(consultantId, "REJECTED");
-                    JsonObject resp = new JsonObject();
-                    resp.addProperty("message", "Consultant rejected.");
-                    sendOk(ex, resp);
+                    sendOk(ex, jsonMsg("Consultant rejected."));
                 }
                 default -> send404(ex, "Unknown action: " + action);
             }
@@ -99,17 +79,13 @@ public class AdminHandler extends BaseHandler {
         }
     }
 
-    // ── /admin/policies ───────────────────────────────────────────────────────
-
     private void handlePolicies(HttpExchange ex, String method, String[] parts) throws IOException {
 
         if (parts.length == 1 && method.equals("GET")) {
-            // View current policy names
+            // Use a friendly display name instead of getSimpleName() which breaks on lambdas/anonymous classes
             JsonObject resp = new JsonObject();
-            resp.addProperty("cancellationPolicy",
-                    ctx.policyManager.getCancellationPolicy().getClass().getSimpleName());
-            resp.addProperty("refundPolicy",
-                    ctx.policyManager.getRefundPolicy().getClass().getSimpleName());
+            resp.addProperty("cancellationPolicy", friendlyName(ctx.policyManager.getCancellationPolicy()));
+            resp.addProperty("refundPolicy",       friendlyName(ctx.policyManager.getRefundPolicy()));
             resp.addProperty("notificationPolicy",
                     ctx.policyManager.getNotificationPolicy().getClass().getSimpleName());
             resp.addProperty("pricingStrategy",
@@ -127,13 +103,11 @@ public class AdminHandler extends BaseHandler {
                     sendOk(ex, jsonMsg("Cancellation policy set to DEFAULT."));
                 }
                 case "STRICT" -> {
-                    ctx.policyManager.setCancellationPolicy(new CancellationPolicy() {
-                        @Override public boolean canCancel(com.platform.domain.Booking b, java.time.LocalDateTime now) { return false; }
-                        @Override public double cancellationFee(com.platform.domain.Booking b, java.time.LocalDateTime now) { return b.getService().getPrice(); }
-                    });
+                    // Uses named class — getSimpleName() returns "StrictCancellationPolicy"
+                    ctx.policyManager.setCancellationPolicy(new StrictCancellationPolicy());
                     sendOk(ex, jsonMsg("Cancellation policy set to STRICT (no cancellations)."));
                 }
-                default -> send400(ex, "Unknown cancellation type: " + type + ". Use DEFAULT or STRICT.");
+                default -> send400(ex, "Unknown type: " + type + ". Use DEFAULT or STRICT.");
             }
 
         } else if (parts.length == 2 && parts[1].equals("refund") && method.equals("POST")) {
@@ -151,14 +125,30 @@ public class AdminHandler extends BaseHandler {
                     sendOk(ex, jsonMsg("Refund policy set to FULL (100%)."));
                 }
                 case "NONE" -> {
-                    ctx.policyManager.setRefundPolicy((tx, now) -> 0.0);
+                    // Uses named class — getSimpleName() returns "NoRefundPolicy"
+                    ctx.policyManager.setRefundPolicy(new NoRefundPolicy());
                     sendOk(ex, jsonMsg("Refund policy set to NONE (0%)."));
                 }
-                default -> send400(ex, "Unknown refund type: " + type + ". Use DEFAULT, FULL, or NONE.");
+                default -> send400(ex, "Unknown type: " + type + ". Use DEFAULT, FULL, or NONE.");
             }
         } else {
             send404(ex, "Admin policies endpoint not found.");
         }
+    }
+
+    /**
+     * Returns a clean display name for any policy object.
+     * Falls back gracefully for any class (named or anonymous).
+     */
+    private String friendlyName(Object policy) {
+        String raw = policy.getClass().getSimpleName();
+        // If it's a lambda or anonymous class the name will contain $ or be empty
+        if (raw.isEmpty() || raw.contains("$")) {
+            // Best effort: use the interface name
+            Class<?>[] ifaces = policy.getClass().getInterfaces();
+            return ifaces.length > 0 ? ifaces[0].getSimpleName() + " (custom)" : "Custom";
+        }
+        return raw;
     }
 
     private JsonObject jsonMsg(String msg) {

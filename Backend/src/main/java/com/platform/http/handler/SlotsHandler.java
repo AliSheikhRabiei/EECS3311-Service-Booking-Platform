@@ -13,16 +13,19 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * UC8 – Manage Availability (CONSULTANT only)
+ * UC8 - Manage Availability (CONSULTANT only)
  *
- *   GET    /slots                → list all slots for the logged-in consultant
- *   POST   /slots                → add a single slot  { start, end }
- *   POST   /slots/block          → add a time block   { start, end }
- *   DELETE /slots/{slotUuid}     → remove a slot
+ *   GET    /slots              - list all slots for the logged-in consultant
+ *   POST   /slots              - add slot(s) { start, end }
+ *                               If the range is exactly 1 hour → creates 1 slot.
+ *                               If the range is > 1 hour → auto-splits into 1-hour slots.
+ *                               This matches the original Phase 1 behaviour.
+ *   DELETE /slots/{slotUuid}  - remove a slot
  */
 public class SlotsHandler extends BaseHandler {
 
@@ -42,12 +45,9 @@ public class SlotsHandler extends BaseHandler {
 
         try {
             if (parts.length == 0) {
-                if (method.equals("GET"))  listSlots(ex);
-                else if (method.equals("POST")) addSlot(ex);
+                if (method.equals("GET"))        listSlots(ex);
+                else if (method.equals("POST"))  addSlots(ex);
                 else send404(ex, "Not found");
-
-            } else if (parts.length == 1 && parts[0].equals("block") && method.equals("POST")) {
-                addBlock(ex);
 
             } else if (parts.length == 1 && method.equals("DELETE")) {
                 deleteSlot(ex, parts[0]);
@@ -63,7 +63,7 @@ public class SlotsHandler extends BaseHandler {
         }
     }
 
-    // ── GET /slots ────────────────────────────────────────────────────────────
+    // -- GET /slots -----------------------------------------------------------
 
     private void listSlots(HttpExchange ex) throws IOException {
         UserSession session = requireRole(ex, "CONSULTANT");
@@ -78,9 +78,11 @@ public class SlotsHandler extends BaseHandler {
         sendOk(ex, dtos);
     }
 
-    // ── POST /slots ───────────────────────────────────────────────────────────
+    // -- POST /slots ----------------------------------------------------------
+    // Always auto-splits into 1-hour slots (same as Phase 1 addTimeSlotBlock).
+    // A 1-hour range creates exactly 1 slot; a 6-hour range creates 6 slots.
 
-    private void addSlot(HttpExchange ex) throws IOException {
+    private void addSlots(HttpExchange ex) throws IOException {
         UserSession session = requireRole(ex, "CONSULTANT");
         if (session == null) return;
 
@@ -89,7 +91,7 @@ public class SlotsHandler extends BaseHandler {
         String endStr   = str(body, "end");
 
         if (startStr == null || endStr == null) {
-            send400(ex, "start and end are required (ISO format: 2026-05-01T10:00:00).");
+            send400(ex, "start and end are required (ISO format: 2026-06-01T10:00:00).");
             return;
         }
 
@@ -98,68 +100,45 @@ public class SlotsHandler extends BaseHandler {
             start = LocalDateTime.parse(startStr);
             end   = LocalDateTime.parse(endStr);
         } catch (DateTimeParseException e) {
-            send400(ex, "Invalid date format. Use ISO format: 2026-05-01T10:00:00");
+            send400(ex, "Invalid date format. Use ISO format: 2026-06-01T10:00:00");
+            return;
+        }
+
+        if (!end.isAfter(start)) {
+            send400(ex, "end must be after start.");
+            return;
+        }
+
+        long totalHours = ChronoUnit.HOURS.between(start, end);
+        if (totalHours < 1) {
+            send400(ex, "Slots must be at least 1 hour long.");
             return;
         }
 
         Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
-        TimeSlot slot = new TimeSlot(start, end);
 
-        // Persist to DB
-        String slotUuid = ctx.slotRepository.save(session.getUserId(), slot);
-        // Add to in-memory AvailabilityService
-        ctx.availabilityService.addTimeSlot(consultant, slot);
-
-        SlotRepository.SlotRow row = ctx.slotRepository.findByUuid(slotUuid);
-        sendCreated(ex, new Dtos.SlotDto(row));
-    }
-
-    // ── POST /slots/block ─────────────────────────────────────────────────────
-
-    private void addBlock(HttpExchange ex) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
-
-        JsonObject body = parseBody(ex);
-        String startStr = str(body, "start");
-        String endStr   = str(body, "end");
-
-        if (startStr == null || endStr == null) {
-            send400(ex, "start and end are required.");
-            return;
-        }
-
-        LocalDateTime start, end;
-        try {
-            start = LocalDateTime.parse(startStr);
-            end   = LocalDateTime.parse(endStr);
-        } catch (DateTimeParseException e) {
-            send400(ex, "Invalid date format. Use ISO: 2026-05-01T10:00:00");
-            return;
-        }
-
-        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
+        // Phase 1 logic: splits any range into 1-hour slots automatically
         int added = ctx.availabilityService.addTimeSlotBlock(consultant, start, end);
 
-        // Persist each newly added slot to DB
-        List<SlotRepository.SlotRow> allSlots = ctx.slotRepository
-                .findByConsultantId(session.getUserId());
-        // Save slots that don't yet have a DB UUID
+        // Persist each new slot to DB
+        List<SlotRepository.SlotRow> existingInDb = ctx.slotRepository.findByConsultantId(session.getUserId());
         for (TimeSlot ts : ctx.availabilityService.listAllSlots(consultant)) {
-            boolean alreadyInDb = allSlots.stream()
+            boolean alreadyInDb = existingInDb.stream()
                     .anyMatch(r -> r.start.equals(ts.getStart()));
             if (!alreadyInDb) {
                 ctx.slotRepository.save(session.getUserId(), ts);
+                // Refresh to include the one we just saved in subsequent iterations
+                existingInDb = ctx.slotRepository.findByConsultantId(session.getUserId());
             }
         }
 
         JsonObject resp = new JsonObject();
         resp.addProperty("slotsAdded", added);
-        resp.addProperty("message", added + " one-hour slot(s) added.");
+        resp.addProperty("message", added + " one-hour slot(s) added successfully.");
         sendCreated(ex, resp);
     }
 
-    // ── DELETE /slots/{uuid} ──────────────────────────────────────────────────
+    // -- DELETE /slots/{uuid} -------------------------------------------------
 
     private void deleteSlot(HttpExchange ex, String slotUuid) throws IOException {
         UserSession session = requireRole(ex, "CONSULTANT");
@@ -173,9 +152,7 @@ public class SlotsHandler extends BaseHandler {
             return;
         }
 
-        // Remove from DB
         ctx.slotRepository.delete(slotUuid);
-        // Remove from in-memory AvailabilityService
         Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
         ctx.availabilityService.removeTimeSlot(consultant, row.slot.getSlotId());
 

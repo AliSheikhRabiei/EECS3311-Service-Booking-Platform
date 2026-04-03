@@ -63,23 +63,24 @@
     </div>
     <div id="alertSlots" class="alert"></div>
 
-    <!-- Add single slot -->
+
     <div class="card">
-        <div class="card-title">Add a Time Slot</div>
+        <div class="card-title">Add Availability</div>
+        <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem">
+            Set a start and end time. The range is automatically split into 1-hour slots.
+            Example: 09:00 → 17:00 creates 8 individual slots clients can book.
+        </p>
         <div class="form-row">
             <div class="form-group">
                 <label>Start (YYYY-MM-DDThh:mm:ss)</label>
-                <input id="slotStart" class="form-control" placeholder="2026-06-01T10:00:00">
+                <input id="slotStart" class="form-control" placeholder="2026-06-01T09:00:00">
             </div>
             <div class="form-group">
                 <label>End (YYYY-MM-DDThh:mm:ss)</label>
-                <input id="slotEnd" class="form-control" placeholder="2026-06-01T11:00:00">
+                <input id="slotEnd" class="form-control" placeholder="2026-06-01T17:00:00">
             </div>
         </div>
-        <div style="display:flex;gap:.5rem">
-            <button class="btn btn-primary" onclick="addSlot()">Add Slot</button>
-            <button class="btn btn-outline" onclick="addBlock()">Add Time Block (auto-split hourly)</button>
-        </div>
+        <button class="btn btn-primary" onclick="addSlot()">Add Slots</button>
     </div>
 
     <!-- Slots table -->
@@ -244,22 +245,8 @@ async function addSlot() {
     const end   = document.getElementById('slotEnd').value.trim();
     if (!start || !end) { showAlert('alertSlots', 'Please enter both start and end times.'); return; }
     try {
-        await api.post('/slots', { start, end });
-        showAlert('alertSlots', 'Slot added.', 'success');
-        document.getElementById('slotStart').value = '';
-        document.getElementById('slotEnd').value   = '';
-        loadSlots();
-    } catch (err) {
-        showAlert('alertSlots', err.message);
-    }
-}
-
-async function addBlock() {
-    const start = document.getElementById('slotStart').value.trim();
-    const end   = document.getElementById('slotEnd').value.trim();
-    if (!start || !end) { showAlert('alertSlots', 'Please enter both start and end times for the block.'); return; }
-    try {
-        const result = await api.post('/slots/block', { start, end });
+        // POST /slots auto-splits into 1-hour slots on the backend (same as Phase 1)
+        const result = await api.post('/slots', { start, end });
         showAlert('alertSlots', result.message, 'success');
         document.getElementById('slotStart').value = '';
         document.getElementById('slotEnd').value   = '';
