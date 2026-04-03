@@ -31,7 +31,7 @@ public class AuthService {
         String id   = UUID.randomUUID().toString();
         String hash = PasswordUtil.hash(password);
         userRepository.saveUser(id, name, email, hash, "CLIENT");
-        System.out.println("[AuthService] Registered CLIENT: " + email);
+        System.out.println("[AuthService] Registered CLIENT account.");
     }
 
     /**
@@ -46,7 +46,7 @@ public class AuthService {
         userRepository.saveConsultantProfile(id,
                 bio == null ? "" : bio,
                 RegistrationStatus.PENDING.name());
-        System.out.println("[AuthService] Registered CONSULTANT (PENDING): " + email);
+        System.out.println("[AuthService] Registered CONSULTANT account (PENDING).");
     }
 
     /**
@@ -57,7 +57,7 @@ public class AuthService {
         String id   = UUID.randomUUID().toString();
         String hash = PasswordUtil.hash(password);
         userRepository.saveUser(id, name, email, hash, "ADMIN");
-        System.out.println("[AuthService] Admin account ensured: " + email);
+        System.out.println("[AuthService] Admin account ensured.");
     }
 
     // ── Login ─────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email or password.");
         }
         String token = sessionStore.createSession(row.id, row.role, row.name, row.email);
-        System.out.println("[AuthService] Login: " + email + " role=" + row.role);
+        System.out.println("[AuthService] Login succeeded for role=" + row.role);
         return token;
     }
 

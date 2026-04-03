@@ -3,34 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard – Service Booking</title>
+    <title>Admin Dashboard - Service Booking</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="navbar-brand">📅 Service Booking <span>Admin Portal</span></div>
+    <div class="navbar-brand">Service Booking <span>Admin Portal</span></div>
     <div class="navbar-right">
         <span class="navbar-user user-name-display"></span>
-        <button class="btn-logout" onclick="logout()">Logout</button>
+        <button class="btn-logout" onclick="logout(this)">Logout</button>
     </div>
 </nav>
 
 <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-consultants" onclick="switchTab('tab-consultants');loadConsultants()">Consultants (UC11)</button>
-    <button class="tab-btn"        data-tab="tab-policies"    onclick="switchTab('tab-policies');loadPolicies()">Policies (UC12)</button>
-    <button class="tab-btn"        data-tab="tab-overview"    onclick="switchTab('tab-overview');loadOverview()">System Overview</button>
+    <button class="tab-btn active" data-tab="tab-consultants" onclick="activateAdminTab('tab-consultants')">Consultants (UC11)</button>
+    <button class="tab-btn" data-tab="tab-policies" onclick="activateAdminTab('tab-policies')">Policies (UC12)</button>
+    <button class="tab-btn" data-tab="tab-overview" onclick="activateAdminTab('tab-overview')">System Overview</button>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 1 – Consultants (UC11)
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-consultants" class="page active">
     <div class="section-header">
         <h2>Consultant Registrations (UC11)</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadConsultants()">↻ Refresh</button>
     </div>
     <div id="alertConsultants" class="alert"></div>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <div class="form-group">
+                <label for="consultantSearch">Search</label>
+                <input id="consultantSearch" class="form-control" placeholder="Search by name, email, or bio" oninput="renderConsultants()">
+            </div>
+            <div class="form-group">
+                <label for="consultantStatusFilter">Status</label>
+                <select id="consultantStatusFilter" class="form-control" onchange="renderConsultants()">
+                    <option value="ALL">All statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadConsultants(this)">Refresh</button>
+    </div>
+    <div id="consultantSummary" class="summary-row"></div>
 
     <div class="card">
         <div class="table-wrap">
@@ -52,96 +67,111 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 2 – Policies (UC12)
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-policies" class="page">
     <div class="section-header">
         <h2>System Policies (UC12)</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadPolicies()">↻ Refresh</button>
+        <button class="btn btn-outline btn-sm" onclick="loadPolicies(this)">Refresh</button>
     </div>
     <div id="alertPolicies" class="alert"></div>
 
-    <!-- Current policies display -->
     <div class="card">
         <div class="card-title">Current Active Policies</div>
         <div id="currentPolicies">
-            <div class="empty"><p>Loading…</p></div>
+            <div class="empty"><p>Loading...</p></div>
         </div>
     </div>
 
-    <!-- Cancellation Policy -->
     <div class="card">
         <div class="card-title">Cancellation Policy</div>
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem">
             Controls whether clients are allowed to cancel bookings.
         </p>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap">
-            <button class="btn btn-outline" onclick="setPolicy('cancellation','DEFAULT')">
-                Default — Cancellations allowed, no fee
+            <button class="btn btn-outline" onclick="setPolicy(this, 'cancellation','DEFAULT')">
+                Default - Cancellations allowed, no fee
             </button>
-            <button class="btn btn-danger" onclick="setPolicy('cancellation','STRICT')">
-                Strict — No cancellations allowed
+            <button class="btn btn-danger" onclick="setPolicy(this, 'cancellation','STRICT')">
+                Strict - No cancellations allowed
             </button>
         </div>
     </div>
 
-    <!-- Refund Policy -->
     <div class="card">
         <div class="card-title">Refund Policy</div>
         <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1rem">
             Controls how much of the payment is refunded when a paid booking is cancelled.
         </p>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap">
-            <button class="btn btn-outline" onclick="setPolicy('refund','DEFAULT')">
-                Default — 80% refund
+            <button class="btn btn-outline" onclick="setPolicy(this, 'refund','DEFAULT')">
+                Default - 80% refund
             </button>
-            <button class="btn btn-success" onclick="setPolicy('refund','FULL')">
-                Full — 100% refund
+            <button class="btn btn-success" onclick="setPolicy(this, 'refund','FULL')">
+                Full - 100% refund
             </button>
-            <button class="btn btn-danger" onclick="setPolicy('refund','NONE')">
-                None — 0% refund
+            <button class="btn btn-danger" onclick="setPolicy(this, 'refund','NONE')">
+                None - 0% refund
             </button>
         </div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 3 – System Overview
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-overview" class="page">
-    <div class="section-header"><h2>System Overview</h2></div>
+    <div class="section-header">
+        <h2>System Overview</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadOverview(this)">Refresh</button>
+    </div>
     <div id="alertOverview" class="alert"></div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
         <div class="card" style="text-align:center;margin-bottom:0">
-            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statServices">—</div>
+            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statServices">-</div>
             <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Total Services</div>
         </div>
         <div class="card" style="text-align:center;margin-bottom:0">
-            <div style="font-size:2rem;font-weight:700;color:var(--green)" id="statApproved">—</div>
+            <div style="font-size:2rem;font-weight:700;color:var(--green)" id="statApproved">-</div>
             <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Approved Consultants</div>
         </div>
         <div class="card" style="text-align:center;margin-bottom:0">
-            <div style="font-size:2rem;font-weight:700;color:var(--yellow)" id="statPending">—</div>
+            <div style="font-size:2rem;font-weight:700;color:var(--yellow)" id="statPending">-</div>
             <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Pending Approvals</div>
         </div>
         <div class="card" style="text-align:center;margin-bottom:0">
-            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statBookings">—</div>
+            <div style="font-size:2rem;font-weight:700;color:var(--blue)" id="statBookings">-</div>
             <div style="font-size:.875rem;color:var(--gray-600);margin-top:.25rem">Total Bookings</div>
         </div>
     </div>
 
-    <!-- All bookings table -->
     <div class="card">
         <div class="card-title">All Bookings</div>
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <div class="form-group">
+                    <label for="overviewBookingSearch">Search</label>
+                    <input id="overviewBookingSearch" class="form-control" placeholder="Search booking, client, service, or consultant" oninput="renderOverviewBookings()">
+                </div>
+                <div class="form-group">
+                    <label for="overviewBookingStatus">Status</label>
+                    <select id="overviewBookingStatus" class="form-control" onchange="renderOverviewBookings()">
+                        <option value="ALL">All statuses</option>
+                        <option value="REQUESTED">Requested</option>
+                        <option value="CONFIRMED">Confirmed</option>
+                        <option value="PENDING_PAYMENT">Pending Payment</option>
+                        <option value="PAID">Paid</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="CANCELLED">Cancelled</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            <span class="toolbar-note">Use the filters to narrow the cross-system booking view.</span>
+        </div>
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Consultant</th><th>Slot</th><th>Status</th></tr>
+                    <tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Consultant</th><th>Slot</th><th>Status</th><th>Progress</th></tr>
                 </thead>
                 <tbody id="allBookingsTable">
-                    <tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>
+                    <tr><td colspan="7"><div class="empty"><p>No bookings yet.</p></div></td></tr>
                 </tbody>
             </table>
         </div>
@@ -154,129 +184,220 @@
 const user = requireAuth('ADMIN');
 if (user) renderNavbar(user);
 
-// ── Tab 1: Consultants ────────────────────────────────────────
-
-async function loadConsultants() {
-    try {
-        const consultants = await api.get('/admin/consultants');
-        const tbody = document.getElementById('consultantsTable');
-        if (!consultants.length) {
-            tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>No consultant registrations yet.</p></div></td></tr>';
-            return;
-        }
-        tbody.innerHTML = consultants.map(c => `
-            <tr>
-                <td><strong>${c.name}</strong></td>
-                <td>${c.email}</td>
-                <td>${c.bio || '—'}</td>
-                <td>${statusBadge(c.registrationStatus)}</td>
-                <td>
-                    <div class="action-row">
-                        ${c.registrationStatus !== 'APPROVED' ? `
-                            <button class="btn btn-success btn-sm" onclick="approveConsultant('${c.id}')">Approve</button>
-                        ` : ''}
-                        ${c.registrationStatus !== 'REJECTED' ? `
-                            <button class="btn btn-danger btn-sm" onclick="rejectConsultant('${c.id}')">Reject</button>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        showAlert('alertConsultants', err.message);
-    }
-}
+let consultantsCache = [];
+let overviewBookingsCache = [];
 
 function statusBadge(status) {
+    const safeStatus = String(status ?? 'PENDING');
     const map = { APPROVED: 'approved', PENDING: 'pending_reg', REJECTED: 'rejected' };
-    return `<span class="badge badge-${map[status] || 'pending_reg'}">${status}</span>`;
+    return `<span class="badge badge-${map[safeStatus] || 'pending_reg'}">${escapeHtml(safeStatus)}</span>`;
 }
 
-async function approveConsultant(id) {
-    try {
-        await api.post(`/admin/consultants/${id}/approve`, {});
-        showAlert('alertConsultants', 'Consultant approved.', 'success');
-        loadConsultants();
-    } catch (err) {
-        showAlert('alertConsultants', err.message);
-    }
-}
-
-async function rejectConsultant(id) {
-    try {
-        await api.post(`/admin/consultants/${id}/reject`, {});
-        showAlert('alertConsultants', 'Consultant rejected.', 'success');
-        loadConsultants();
-    } catch (err) {
-        showAlert('alertConsultants', err.message);
-    }
-}
-
-// ── Tab 2: Policies ───────────────────────────────────────────
-
-async function loadPolicies() {
-    try {
-        const policies = await api.get('/admin/policies');
-        document.getElementById('currentPolicies').innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.875rem">
-                <div><strong>Cancellation:</strong> ${policies.cancellationPolicy}</div>
-                <div><strong>Refund:</strong> ${policies.refundPolicy}</div>
-                <div><strong>Notification:</strong> ${policies.notificationPolicy}</div>
-                <div><strong>Pricing:</strong> ${policies.pricingStrategy}</div>
-            </div>
-        `;
-    } catch (err) {
-        showAlert('alertPolicies', err.message);
-    }
-}
-
-async function setPolicy(policyType, type) {
-    try {
-        const result = await api.post(`/admin/policies/${policyType}`, { type });
-        showAlert('alertPolicies', result.message, 'success');
+function activateAdminTab(tabId) {
+    switchTab(tabId);
+    if (tabId === 'tab-policies') {
         loadPolicies();
-    } catch (err) {
-        showAlert('alertPolicies', err.message);
+        return;
     }
+    if (tabId === 'tab-overview') {
+        loadOverview();
+        return;
+    }
+    loadConsultants();
 }
 
-// ── Tab 3: Overview ───────────────────────────────────────────
-
-async function loadOverview() {
-    try {
-        const [services, consultants, bookings] = await Promise.all([
-            api.get('/services'),
-            api.get('/admin/consultants'),
-            api.get('/bookings'),
-        ]);
-
-        document.getElementById('statServices').textContent = services.length;
-        document.getElementById('statApproved').textContent = consultants.filter(c => c.registrationStatus === 'APPROVED').length;
-        document.getElementById('statPending').textContent  = consultants.filter(c => c.registrationStatus === 'PENDING').length;
-        document.getElementById('statBookings').textContent = bookings.length;
-
-        const tbody = document.getElementById('allBookingsTable');
-        if (!bookings.length) {
-            tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>';
-            return;
+async function loadConsultants(button) {
+    const task = async () => {
+        try {
+            consultantsCache = await api.get('/admin/consultants');
+            renderConsultants();
+        } catch (err) {
+            showAlert('alertConsultants', err.message);
         }
-        tbody.innerHTML = bookings.map(b => `
-            <tr>
-                <td><code>${b.bookingId}</code></td>
-                <td>${b.clientName}</td>
-                <td>${b.serviceTitle}</td>
-                <td>${b.consultantName}</td>
-                <td>${fmtSlot(b.slotStart)}</td>
-                <td>${badge(b.status)}</td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        showAlert('alertOverview', err.message);
-    }
+    };
+    return button ? withButtonLoading(button, 'Refreshing...', task) : task();
 }
 
-// ── Init ──────────────────────────────────────────────────────
-loadConsultants();
+function renderConsultants() {
+    const tbody = document.getElementById('consultantsTable');
+    const term = document.getElementById('consultantSearch').value.trim().toLowerCase();
+    const status = document.getElementById('consultantStatusFilter').value;
+    const filtered = consultantsCache.filter(consultant => {
+        const haystack = [
+            consultant.name,
+            consultant.email,
+            consultant.bio,
+        ].join(' ').toLowerCase();
+        const matchesTerm = !term || haystack.includes(term);
+        const matchesStatus = status === 'ALL' || consultant.registrationStatus === status;
+        return matchesTerm && matchesStatus;
+    });
+
+    document.getElementById('consultantSummary').innerHTML = `
+        <span class="summary-chip"><strong>${consultantsCache.length}</strong> registrations</span>
+        <span class="summary-chip"><strong>${consultantsCache.filter(c => c.registrationStatus === 'PENDING').length}</strong> pending review</span>
+        <span class="summary-chip"><strong>${consultantsCache.filter(c => c.registrationStatus === 'APPROVED').length}</strong> approved</span>
+    `;
+
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>No consultant registrations match your filters.</p></div></td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(c => `
+        <tr>
+            <td><strong>${escapeHtml(c.name)}</strong></td>
+            <td>${escapeHtml(c.email)}</td>
+            <td>${escapeHtml(c.bio || '-')}</td>
+            <td>${statusBadge(c.registrationStatus)}</td>
+            <td>
+                <div class="action-row">
+                    ${c.registrationStatus !== 'APPROVED'
+                        ? `<button class="btn btn-success btn-sm" data-consultant-id="${escapeAttr(c.id)}" onclick="approveConsultant(this, this.dataset.consultantId)">Approve</button>`
+                        : ''}
+                    ${c.registrationStatus !== 'REJECTED'
+                        ? `<button class="btn btn-danger btn-sm" data-consultant-id="${escapeAttr(c.id)}" onclick="rejectConsultant(this, this.dataset.consultantId)">Reject</button>`
+                        : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function approveConsultant(button, id) {
+    const task = async () => {
+        try {
+            await api.post(`/admin/consultants/${id}/approve`, {});
+            showAlert('alertConsultants', 'Consultant approved.', 'success');
+            await loadConsultants();
+        } catch (err) {
+            showAlert('alertConsultants', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Approving...', task) : task();
+}
+
+async function rejectConsultant(button, id) {
+    const task = async () => {
+        try {
+            await api.post(`/admin/consultants/${id}/reject`, {});
+            showAlert('alertConsultants', 'Consultant rejected.', 'success');
+            await loadConsultants();
+        } catch (err) {
+            showAlert('alertConsultants', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Rejecting...', task) : task();
+}
+
+async function loadPolicies(button) {
+    const task = async () => {
+        try {
+            const policies = await api.get('/admin/policies');
+            document.getElementById('currentPolicies').innerHTML = `
+                <div class="policy-grid">
+                    <div><strong>Cancellation:</strong> ${escapeHtml(policies.cancellationPolicy)}</div>
+                    <div><strong>Refund:</strong> ${escapeHtml(policies.refundPolicy)}</div>
+                    <div><strong>Notification:</strong> ${escapeHtml(policies.notificationPolicy)}</div>
+                    <div><strong>Pricing:</strong> ${escapeHtml(policies.pricingStrategy)}</div>
+                </div>
+            `;
+        } catch (err) {
+            showAlert('alertPolicies', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Refreshing...', task) : task();
+}
+
+async function setPolicy(button, policyType, type) {
+    const task = async () => {
+        try {
+            const result = await api.post(`/admin/policies/${policyType}`, { type });
+            showAlert('alertPolicies', result.message, 'success');
+            await loadPolicies();
+        } catch (err) {
+            showAlert('alertPolicies', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Saving...', task) : task();
+}
+
+function renderOverviewBookings() {
+    const tbody = document.getElementById('allBookingsTable');
+    const term = document.getElementById('overviewBookingSearch').value.trim().toLowerCase();
+    const status = document.getElementById('overviewBookingStatus').value;
+    const filtered = overviewBookingsCache.filter(booking => {
+        const haystack = [
+            booking.bookingId,
+            booking.clientName,
+            booking.serviceTitle,
+            booking.consultantName,
+        ].join(' ').toLowerCase();
+        const matchesTerm = !term || haystack.includes(term);
+        const matchesStatus = status === 'ALL' || booking.status === status;
+        return matchesTerm && matchesStatus;
+    });
+
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No bookings match your filters.</p></div></td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(b => `
+        <tr>
+            <td>
+                <div class="table-cell-stack">
+                    <code>${escapeHtml(b.bookingId)}</code>
+                    <button class="btn btn-outline btn-sm" data-booking-id="${escapeAttr(b.bookingId)}" onclick="copyText(this.dataset.bookingId, 'Booking ID copied.')">Copy ID</button>
+                </div>
+            </td>
+            <td>${escapeHtml(b.clientName)}</td>
+            <td>${escapeHtml(b.serviceTitle)}</td>
+            <td>${escapeHtml(b.consultantName)}</td>
+            <td>${fmtSlot(b.slotStart)}</td>
+            <td>${badge(b.status)}</td>
+            <td>${renderBookingProgress(b.status)}</td>
+        </tr>
+    `).join('');
+}
+
+async function loadOverview(button) {
+    const task = async () => {
+        try {
+            const [services, consultants, bookings] = await Promise.all([
+                api.get('/services'),
+                api.get('/admin/consultants'),
+                api.get('/bookings'),
+            ]);
+
+            overviewBookingsCache = bookings;
+            document.getElementById('statServices').textContent = services.length;
+            document.getElementById('statApproved').textContent = consultants.filter(c => c.registrationStatus === 'APPROVED').length;
+            document.getElementById('statPending').textContent = consultants.filter(c => c.registrationStatus === 'PENDING').length;
+            document.getElementById('statBookings').textContent = bookings.length;
+            renderOverviewBookings();
+        } catch (err) {
+            showAlert('alertOverview', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Refreshing...', task) : task();
+}
+
+function initAdminDashboard() {
+    const activeTab = restoreSavedTab('tab-consultants');
+    if (activeTab === 'tab-policies') {
+        loadPolicies();
+        return;
+    }
+    if (activeTab === 'tab-overview') {
+        loadOverview();
+        return;
+    }
+    loadConsultants();
+}
+
+initAdminDashboard();
 </script>
+
 </body>
 </html>

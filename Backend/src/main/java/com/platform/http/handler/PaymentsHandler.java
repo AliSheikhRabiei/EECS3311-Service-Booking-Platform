@@ -71,7 +71,7 @@ public class PaymentsHandler extends BaseHandler {
         } catch (IllegalArgumentException e) {
             send400(ex, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[PaymentsHandler] Unexpected error: " + e.getMessage());
             send500(ex, "Unexpected error: " + e.getMessage());
         }
     }

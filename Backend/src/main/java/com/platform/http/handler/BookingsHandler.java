@@ -2,11 +2,14 @@ package com.platform.http.handler;
 
 import com.google.gson.JsonObject;
 import com.platform.auth.UserSession;
+import com.platform.db.BookingStateFactory;
 import com.platform.db.SlotRepository;
 import com.platform.domain.*;
 import com.platform.http.AppContext;
 import com.platform.http.BaseHandler;
 import com.platform.http.dto.Dtos;
+import com.platform.payment.PaymentStatus;
+import com.platform.payment.PaymentTransaction;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
@@ -135,14 +138,16 @@ public class BookingsHandler extends BaseHandler {
 
         SlotRepository.SlotRow slotRow = ctx.slotRepository.findByUuid(slotUuid);
         if (slotRow == null) { send404(ex, "Slot not found: " + slotUuid); return; }
+        if (!slotRow.consultantId.equals(service.getConsultant().getId())) {
+            send400(ex, "Selected slot does not belong to this service.");
+            return;
+        }
         if (!slotRow.isAvailable) { send400(ex, "This slot is no longer available."); return; }
 
         Client client = ctx.userRepository.loadClient(session.getUserId());
         if (client == null) { send400(ex, "Client profile not found."); return; }
 
         Booking booking = ctx.bookingService.createBooking(client, service, slotRow.slot);
-        ctx.bookingRepository.save(booking);
-        ctx.slotRepository.updateAvailability(slotUuid, false);
 
         // Issue #7 fix: sync the in-memory AvailabilityService map.
         // createBooking() calls slot.reserve() on the DB-reconstructed slot object,
@@ -238,6 +243,22 @@ public class BookingsHandler extends BaseHandler {
         if (!cancelled) {
             send400(ex, "Cancellation blocked by current cancellation policy.");
             return;
+        }
+
+        // Bug fix: if the booking was PAID, cancelBooking() triggered a refund inside
+        // PaymentService. That refund transaction exists in the in-memory list but was
+        // never persisted to the DB. Find it now and save it so payment history survives
+        // restarts and the client sees the refund in their payment history.
+        PaymentTransaction refundTx = ctx.paymentService.getAllTransactions().stream()
+                .filter(t -> t.getBooking().getBookingId().equals(bookingId)
+                          && t.getStatus() == PaymentStatus.REFUNDED)
+                .reduce((first, second) -> second)  // take the most recent one
+                .orElse(null);
+        if (refundTx != null) {
+            ctx.transactionRepository.save(refundTx);
+            // Also update the booking status in DB (refund() force-sets CANCELLED in memory)
+            ctx.bookingRepository.updateStatus(bookingId,
+                    BookingStateFactory.toDbString(ctx.bookingService.getBooking(bookingId).getState()));
         }
 
         // Release slot if it was reserved
