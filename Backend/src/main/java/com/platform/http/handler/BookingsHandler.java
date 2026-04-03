@@ -2,11 +2,14 @@ package com.platform.http.handler;
 
 import com.google.gson.JsonObject;
 import com.platform.auth.UserSession;
+import com.platform.db.BookingStateFactory;
 import com.platform.db.SlotRepository;
 import com.platform.domain.*;
 import com.platform.http.AppContext;
 import com.platform.http.BaseHandler;
 import com.platform.http.dto.Dtos;
+import com.platform.payment.PaymentStatus;
+import com.platform.payment.PaymentTransaction;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
@@ -238,6 +241,22 @@ public class BookingsHandler extends BaseHandler {
         if (!cancelled) {
             send400(ex, "Cancellation blocked by current cancellation policy.");
             return;
+        }
+
+        // Bug fix: if the booking was PAID, cancelBooking() triggered a refund inside
+        // PaymentService. That refund transaction exists in the in-memory list but was
+        // never persisted to the DB. Find it now and save it so payment history survives
+        // restarts and the client sees the refund in their payment history.
+        PaymentTransaction refundTx = ctx.paymentService.getAllTransactions().stream()
+                .filter(t -> t.getBooking().getBookingId().equals(bookingId)
+                          && t.getStatus() == PaymentStatus.REFUNDED)
+                .reduce((first, second) -> second)  // take the most recent one
+                .orElse(null);
+        if (refundTx != null) {
+            ctx.transactionRepository.save(refundTx);
+            // Also update the booking status in DB (refund() force-sets CANCELLED in memory)
+            ctx.bookingRepository.updateStatus(bookingId,
+                    BookingStateFactory.toDbString(ctx.bookingService.getBooking(bookingId).getState()));
         }
 
         // Release slot if it was reserved

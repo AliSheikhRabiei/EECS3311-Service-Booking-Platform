@@ -5,6 +5,7 @@ import com.platform.domain.Client;
 import com.platform.notify.NotificationService;
 import com.platform.policy.PolicyManager;
 import com.platform.state.CancelledState;
+import com.platform.state.ConfirmedState;
 import com.platform.state.PaidState;
 import com.platform.state.PendingPaymentState;
 
@@ -80,6 +81,15 @@ public class PaymentService {
     public PaymentTransaction processPayment(Booking booking, PaymentMethod method) {
         if (booking == null) throw new IllegalArgumentException("booking must not be null.");
         if (method  == null) throw new IllegalArgumentException("method must not be null.");
+
+        // Guard: only allow payment from CONFIRMED state.
+        // Prevents re-paying a booking that is already PAID, COMPLETED, or CANCELLED,
+        // and avoids silently overwriting the state on a double-submit.
+        if (!(booking.getState() instanceof ConfirmedState)) {
+            throw new IllegalStateException(
+                    "Payment can only be processed for a CONFIRMED booking. Current state: "
+                    + booking.getStateName());
+        }
 
         // Per spec: Confirmed → PendingPayment BEFORE the handler chain runs.
         System.out.println("[PaymentService] Transitioning booking " + booking.getBookingId()

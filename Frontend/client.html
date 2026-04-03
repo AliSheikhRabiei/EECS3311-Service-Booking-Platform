@@ -398,15 +398,8 @@ async function addPaymentMethod() {
         const body = buildMethodBody(type);
         body.type = type;
         try {
-            // Removed erroneous duplicate POST — the PUT below is the correct update call
-            // Use fetch directly for PUT
-            const token = localStorage.getItem('token');
-            const resp = await fetch(`http://localhost:8080/payments/methods/${updatingMethodId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (!resp.ok) { const d = await resp.json(); throw new Error(d.error || 'Update failed'); }
+            // Use api.put() — goes through the shared apiFetch wrapper (correct auth, correct API_URL)
+            await api.put(`/payments/methods/${updatingMethodId}`, body);
             showAlert('alertPayMethods', 'Payment method updated.', 'success');
         } catch (err) {
             showAlert('alertPayMethods', err.message);
