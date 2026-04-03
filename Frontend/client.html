@@ -368,32 +368,6 @@ async function loadPaymentMethods() {
     }
 }
 
-async function addPaymentMethod() {
-    const type = document.getElementById('pmType').value;
-    let body = { type };
-
-    if (type === 'CREDIT_CARD') {
-        body.cardNumber = document.getElementById('pmCardNum').value.trim();
-        body.expiry     = document.getElementById('pmExpiry').value.trim();
-        body.cvv        = document.getElementById('pmCvv').value.trim();
-    } else if (type === 'DEBIT_CARD') {
-        body.cardNumber = document.getElementById('pmCardNum').value.trim();
-        body.expiry     = document.getElementById('pmExpiry').value.trim();
-    } else if (type === 'PAYPAL') {
-        body.email = document.getElementById('pmPaypalEmail').value.trim();
-    } else if (type === 'BANK_TRANSFER') {
-        body.accountNumber = document.getElementById('pmAccount').value.trim();
-        body.routingNumber = document.getElementById('pmRouting').value.trim();
-    }
-
-    try {
-        await api.post('/payments/methods', body);
-        showAlert('alertPayMethods', 'Payment method added.', 'success');
-        loadPaymentMethods();
-    } catch (err) {
-        showAlert('alertPayMethods', err.message);
-    }
-}
 
 async function removeMethod(methodId) {
     try {
@@ -424,7 +398,7 @@ async function addPaymentMethod() {
         const body = buildMethodBody(type);
         body.type = type;
         try {
-            await api.post(\`/payments/methods/${updatingMethodId}\`, body);  // api.post handles PUT too if we use fetch directly
+            // Removed erroneous duplicate POST — the PUT below is the correct update call
             // Use fetch directly for PUT
             const token = localStorage.getItem('token');
             const resp = await fetch(`http://localhost:8080/payments/methods/${updatingMethodId}`, {
@@ -529,9 +503,6 @@ async function loadPaymentHistory() {
         // Silent fail on history – not critical
     }
 }
-
-// ── Init ──────────────────────────────────────────────────────
-loadServices();
 
 // ── Init ──────────────────────────────────────────────────────
 loadServices();
