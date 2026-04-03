@@ -349,9 +349,10 @@ async function loadPaymentMethods() {
             container.innerHTML = '<div class="empty"><p>No payment methods saved.</p></div>';
         } else {
             container.innerHTML = methods.map(m => `
-                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;flex-wrap:wrap">
                     <span class="badge badge-confirmed">${m.methodType}</span>
                     <span class="pm-tag">${m.displayName}</span>
+                    <button class="btn btn-outline btn-sm" onclick="startUpdateMethod('${m.methodId}','${m.methodType}')">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="removeMethod('${m.methodId}')">Remove</button>
                 </div>
             `).join('');
@@ -401,6 +402,79 @@ async function removeMethod(methodId) {
     } catch (err) {
         showAlert('alertPayMethods', err.message);
     }
+}
+
+// UC6 – Update: pre-fill the form with the existing method's type so the user
+// can change the details and click "Add" — which calls PUT instead of POST.
+let updatingMethodId = null;
+function startUpdateMethod(methodId, methodType) {
+    updatingMethodId = methodId;
+    document.getElementById('pmType').value = methodType;
+    togglePmFields();
+    showAlert('alertPayMethods',
+        'Edit the fields below and click "Update Method" to save changes.', 'info');
+    document.querySelector('[onclick="addPaymentMethod()"]').textContent = 'Update Method';
+    document.getElementById('pmType').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function addPaymentMethod() {
+    if (updatingMethodId) {
+        // UC6 update flow: call PUT /payments/methods/{id}
+        const type = document.getElementById('pmType').value;
+        const body = buildMethodBody(type);
+        body.type = type;
+        try {
+            await api.post(\`/payments/methods/${updatingMethodId}\`, body);  // api.post handles PUT too if we use fetch directly
+            // Use fetch directly for PUT
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`http://localhost:8080/payments/methods/${updatingMethodId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            if (!resp.ok) { const d = await resp.json(); throw new Error(d.error || 'Update failed'); }
+            showAlert('alertPayMethods', 'Payment method updated.', 'success');
+        } catch (err) {
+            showAlert('alertPayMethods', err.message);
+        }
+        updatingMethodId = null;
+        document.querySelector('[onclick="addPaymentMethod()"]').textContent = 'Add Payment Method';
+        loadPaymentMethods();
+        return;
+    }
+    // Original add flow below
+    _doAddPaymentMethod();
+}
+
+async function _doAddPaymentMethod() {
+    const type = document.getElementById('pmType').value;
+    const body = buildMethodBody(type);
+    body.type = type;
+    try {
+        await api.post('/payments/methods', body);
+        showAlert('alertPayMethods', 'Payment method added.', 'success');
+        loadPaymentMethods();
+    } catch (err) {
+        showAlert('alertPayMethods', err.message);
+    }
+}
+
+function buildMethodBody(type) {
+    if (type === 'CREDIT_CARD') return {
+        cardNumber: document.getElementById('pmCardNum').value.trim(),
+        expiry:     document.getElementById('pmExpiry').value.trim(),
+        cvv:        document.getElementById('pmCvv').value.trim(),
+    };
+    if (type === 'DEBIT_CARD') return {
+        cardNumber: document.getElementById('pmCardNum').value.trim(),
+        expiry:     document.getElementById('pmExpiry').value.trim(),
+    };
+    if (type === 'PAYPAL') return { email: document.getElementById('pmPaypalEmail').value.trim() };
+    if (type === 'BANK_TRANSFER') return {
+        accountNumber: document.getElementById('pmAccount').value.trim(),
+        routingNumber: document.getElementById('pmRouting').value.trim(),
+    };
+    return {};
 }
 
 function populateBookingDropdown(confirmed, all) {

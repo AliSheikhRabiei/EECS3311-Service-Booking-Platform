@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  *   GET  /payments/methods          → list saved payment methods (CLIENT)
  *   POST /payments/methods          → add a payment method      (CLIENT)
  *   DELETE /payments/methods/{id}   → remove payment method     (CLIENT)
+ *   PUT    /payments/methods/{id}   → update payment method     (CLIENT)
  *   POST /payments/pay              → process payment { bookingId, methodId } (CLIENT)
  *   GET  /payments/history          → payment history (CLIENT)
  */
@@ -52,6 +53,8 @@ public class PaymentsHandler extends BaseHandler {
                     else send404(ex, "Not found");
                 } else if (parts.length == 2 && method.equals("DELETE")) {
                     removeMethod(ex, parts[1]);
+                } else if (parts.length == 2 && method.equals("PUT")) {
+                    updateMethod(ex, parts[1]);
                 } else {
                     send404(ex, "Not found");
                 }
@@ -141,6 +144,35 @@ public class PaymentsHandler extends BaseHandler {
         JsonObject resp = new JsonObject();
         resp.addProperty("message", "Payment method removed.");
         sendOk(ex, resp);
+    }
+
+    // ── PUT /payments/methods/{id} ───────────────────────────────────────────────
+    // UC6 – Update a saved payment method (replace by same methodId).
+    // Same body as POST /payments/methods but the methodId in the URL is preserved.
+
+    private void updateMethod(HttpExchange ex, String methodId) throws IOException {
+        UserSession session = requireRole(ex, "CLIENT");
+        if (session == null) return;
+
+        JsonObject body = parseBody(ex);
+        String type = str(body, "type");
+        if (type == null) { send400(ex, "type is required."); return; }
+
+        Client client = ctx.userRepository.loadClient(session.getUserId());
+        PaymentMethod updated = buildMethod(body, type, client, methodId);
+        if (updated == null) { send400(ex, "Unknown payment type: " + type); return; }
+
+        if (!updated.validate()) {
+            send400(ex, "Invalid payment details. Check card number, expiry, CVV, etc.");
+            return;
+        }
+
+        // Remove old, persist new (same id — acts as a replace)
+        ctx.paymentMethodRepository.delete(session.getUserId(), methodId);
+        ctx.paymentMethodRepository.save(session.getUserId(), updated);
+        ctx.paymentMethodService.updateMethod(client, updated);
+
+        sendOk(ex, new Dtos.PaymentMethodDto(updated));
     }
 
     // ── POST /payments/pay ─────────────────────────────────────────────────────

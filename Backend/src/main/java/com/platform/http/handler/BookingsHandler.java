@@ -144,6 +144,17 @@ public class BookingsHandler extends BaseHandler {
         ctx.bookingRepository.save(booking);
         ctx.slotRepository.updateAvailability(slotUuid, false);
 
+        // Issue #7 fix: sync the in-memory AvailabilityService map.
+        // createBooking() calls slot.reserve() on the DB-reconstructed slot object,
+        // NOT on the TimeSlot instance stored inside AvailabilityService's HashMap.
+        // Without this loop, listAvailableSlots() keeps showing the slot as available
+        // in memory until the next server restart.
+        Consultant bookingConsultant = service.getConsultant();
+        ctx.availabilityService.listAllSlots(bookingConsultant).stream()
+                .filter(ts -> ts.getStart().equals(slotRow.start))
+                .findFirst()
+                .ifPresent(com.platform.domain.TimeSlot::reserve);
+
         sendCreated(ex, new Dtos.BookingDto(booking));
     }
 

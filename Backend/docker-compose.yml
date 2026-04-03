@@ -1,8 +1,18 @@
-version: "3.9"
+# =============================================================================
+# ⚠️  DEVELOPMENT-ONLY FILE — DO NOT USE FOR NORMAL STARTUP
+# =============================================================================
+# This file is for running ONLY the database + backend during active backend
+# development (when you don't need the frontend container).
+#
+# For the full Phase 2 system (db + backend + frontend), always use the
+# docker-compose.yml in the PROJECT ROOT folder, one level above this file.
+#
+# Root:    EECS3311-Service-Booking-Platform/docker-compose.yml  ← USE THIS
+# This:    EECS3311-Service-Booking-Platform/Backend/docker-compose.yml  ← dev only
+# =============================================================================
 
 services:
 
-  # ── PostgreSQL database ────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: booking_db
@@ -12,16 +22,15 @@ services:
       POSTGRES_USER:     postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"         # exposed so you can connect with pgAdmin or psql locally
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data   # data survives docker-compose down
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d booking_platform"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # ── Java backend ───────────────────────────────────────────────────────────
   backend:
     build:
       context: .
@@ -30,7 +39,7 @@ services:
     restart: unless-stopped
     depends_on:
       db:
-        condition: service_healthy     # wait until Postgres is accepting connections
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -40,6 +49,7 @@ services:
       DB_PASSWORD:    postgres
       ADMIN_EMAIL:    admin@platform.com
       ADMIN_PASSWORD: admin123
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
 
 volumes:
   pgdata:
