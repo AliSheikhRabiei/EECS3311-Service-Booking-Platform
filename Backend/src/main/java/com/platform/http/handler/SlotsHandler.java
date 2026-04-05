@@ -14,7 +14,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -120,15 +122,19 @@ public class SlotsHandler extends BaseHandler {
         // Phase 1 logic: splits any range into 1-hour slots automatically
         int added = ctx.availabilityService.addTimeSlotBlock(consultant, start, end);
 
-        // Persist each new slot to DB
-        List<SlotRepository.SlotRow> existingInDb = ctx.slotRepository.findByConsultantId(session.getUserId());
+        // Persist each new slot to DB.
+        // Fix: load all existing start times into a Set ONCE before the loop
+        // instead of re-querying the DB on every iteration (N+1 query problem).
+        Set<LocalDateTime> existingStartTimes = ctx.slotRepository
+                .findByConsultantId(session.getUserId())
+                .stream()
+                .map(r -> r.start)
+                .collect(Collectors.toCollection(HashSet::new));
+
         for (TimeSlot ts : ctx.availabilityService.listAllSlots(consultant)) {
-            boolean alreadyInDb = existingInDb.stream()
-                    .anyMatch(r -> r.start.equals(ts.getStart()));
-            if (!alreadyInDb) {
+            if (!existingStartTimes.contains(ts.getStart())) {
                 ctx.slotRepository.save(session.getUserId(), ts);
-                // Refresh to include the one we just saved in subsequent iterations
-                existingInDb = ctx.slotRepository.findByConsultantId(session.getUserId());
+                existingStartTimes.add(ts.getStart()); // keep Set current without re-querying DB
             }
         }
 

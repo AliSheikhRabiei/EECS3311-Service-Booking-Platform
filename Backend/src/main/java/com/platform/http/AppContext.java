@@ -110,7 +110,6 @@ public class AppContext {
         }
 
         System.out.println("[AppContext] Reloaded "
-                + catalog.listAllServices().size() + " service(s) and "
-                + slotRepository.findAll().size() + " slot(s) from DB.");
+                + catalog.listAllServices().size() + " service(s) from DB.");
     }
 }
