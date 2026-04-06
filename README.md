@@ -19,7 +19,7 @@ A full-stack web application that connects Clients with professional Consultants
 
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- A `.env` file in the project root (see [API Key Setup](#api-key-setup) below)
+- A `.env` file in the project root (see [Admin Login Setup](#admin-login-setup) below)
 
 ```bash
 # Clone the repository
@@ -28,7 +28,7 @@ cd EECS3311-Service-Booking-Platform
 
 # Create your .env file (see section below)
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+# Edit .env if you want to change the demo admin login or enable the chatbot
 
 # Start all 3 containers
 docker-compose up --build
@@ -58,9 +58,9 @@ docker-compose up
 
 ## API Key Setup
 
-The AI Customer Assistant chatbot requires an API key.
+The AI Customer Assistant chatbot requires an API key, but the rest of the platform does not.
 
-**Step 1:** Create a file named `.env` in the project root (same folder as `docker-compose.yml`):
+**Step 1:** Add this variable to the same project-root `.env` file:
 ```
 OPENAI_API_KEY=sk-your-real-key-here
 ```
@@ -71,10 +71,25 @@ The key is read by `ChatHandler.java` via `System.getenv("OPENAI_API_KEY")`. Wit
 
 ---
 
+## Admin Login Setup
+
+The backend now reads the seeded admin login from `.env` instead of hardcoding it in Java.
+
+Add these values to your project-root `.env` file:
+```
+ADMIN_EMAIL=admin@platform.com
+ADMIN_PASSWORD=admin123
+```
+
+Those demo credentials are fine for grading/local testing and match `.env.example`.
+Change them before any real deployment.
+
 ## How to Use the Application
 
-### Default Admin Account
-Created automatically on first startup:
+### Admin Account
+Created automatically on first startup using `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`.
+
+If you copied the provided `.env.example` values unchanged:
 - **Email:** admin@platform.com
 - **Password:** admin123
 
@@ -204,6 +219,8 @@ $env:DB_URL      = "jdbc:postgresql://localhost:5432/booking_platform"
 $env:DB_USER     = "postgres"
 $env:DB_PASSWORD = "your_postgres_password"
 $env:PORT        = "8080"
+$env:ADMIN_EMAIL = "admin@platform.com"
+$env:ADMIN_PASSWORD = "admin123"
 $env:OPENAI_API_KEY = "sk-your-key"
 
 # 3. Run the Phase 2 HTTP server
@@ -289,11 +306,13 @@ EECS3311-Service-Booking-Platform/
 - Authentication (`auth/` package): PasswordUtil, SessionStore, AuthService
 - HTTP server foundation: AppContext, BaseHandler, HttpServerLauncher
 - Admin and consultant HTTP handlers
+- Frontend basic
+- AI Customer Assistant (ChatHandler, system prompt design)
 - Backend Dockerfile and docker-compose configuration
 
 **Yasamin Kheirkhahan:**
-- Client and booking HTTP handlers
-- Payment subsystem HTTP integration (PaymentsHandler)
-- AI Customer Assistant (ChatHandler, system prompt design)
-- Frontend (all HTML/CSS/JS pages)
-- Bug fixes: booking state stale reference, slot in-memory sync, SQL schema parsing
+- Client and booking HTTP handlers improvements
+- Payment subsystem HTTP integration improvements
+- Frontend improvements (HTML/CSS/JS pages)
+- Bug fixes in multiple places booking state stale reference, slot in-memory sync, SQL schema parsing
+- more bug fixes

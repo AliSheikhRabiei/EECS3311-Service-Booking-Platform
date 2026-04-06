@@ -10,10 +10,17 @@ import com.platform.http.BaseHandler;
 import com.platform.http.dto.Dtos;
 import com.platform.payment.PaymentStatus;
 import com.platform.payment.PaymentTransaction;
+import com.platform.policy.DefaultCancellationPolicy;
+import com.platform.policy.DefaultRefundPolicy;
+import com.platform.policy.FullRefundPolicy;
+import com.platform.policy.NoRefundPolicy;
+import com.platform.policy.StrictCancellationPolicy;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -87,7 +94,8 @@ public class BookingsHandler extends BaseHandler {
                         .stream().map(Dtos.BookingDto::new).collect(Collectors.toList());
             }
             case "CONSULTANT" -> {
-                Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
+                Consultant consultant = requireApprovedConsultant(ex, session.getUserId());
+                if (consultant == null) return;
                 dtos = ctx.bookingService.getBookingsForConsultant(consultant)
                         .stream().map(Dtos.BookingDto::new).collect(Collectors.toList());
             }
@@ -133,19 +141,25 @@ public class BookingsHandler extends BaseHandler {
             return;
         }
 
-        Service service = ctx.catalog.findById(serviceId);
+        Service service = ctx.serviceRepository.findById(serviceId);
         if (service == null) { send404(ex, "Service not found: " + serviceId); return; }
+        if (service.getConsultant().getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            send400(ex, "This service is not bookable until the consultant is approved.");
+            return;
+        }
 
         SlotRepository.SlotRow slotRow = ctx.slotRepository.findByUuid(slotUuid);
         if (slotRow == null) { send404(ex, "Slot not found: " + slotUuid); return; }
+        if (!slotRow.consultantId.equals(service.getConsultant().getId())) {
+            send400(ex, "Selected slot does not belong to this service.");
+            return;
+        }
         if (!slotRow.isAvailable) { send400(ex, "This slot is no longer available."); return; }
 
         Client client = ctx.userRepository.loadClient(session.getUserId());
         if (client == null) { send400(ex, "Client profile not found."); return; }
 
         Booking booking = ctx.bookingService.createBooking(client, service, slotRow.slot);
-        ctx.bookingRepository.save(booking);
-        ctx.slotRepository.updateAvailability(slotUuid, false);
 
         // Issue #7 fix: sync the in-memory AvailabilityService map.
         // createBooking() calls slot.reserve() on the DB-reconstructed slot object,
@@ -167,11 +181,11 @@ public class BookingsHandler extends BaseHandler {
     // booking instead of using the stale pre-call reference.
 
     private void confirmBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         // Validate ownership BEFORE the state change
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         // Service call: mutates its own copy and persists to DB
@@ -185,14 +199,14 @@ public class BookingsHandler extends BaseHandler {
     // -- POST /bookings/{id}/reject -------------------------------------------
 
     private void rejectBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         JsonObject body = parseBody(ex);
         String reason = str(body, "reason");
         if (reason == null) reason = "No reason provided.";
 
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         ctx.bookingService.rejectBooking(bookingId, reason);
@@ -207,10 +221,10 @@ public class BookingsHandler extends BaseHandler {
     // -- POST /bookings/{id}/complete -----------------------------------------
 
     private void completeBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         ctx.bookingService.completeBooking(bookingId);
@@ -236,6 +250,10 @@ public class BookingsHandler extends BaseHandler {
         JsonObject body = parseBody(ex);
         String reason = str(body, "reason");
         if (reason == null) reason = "Cancelled by user.";
+
+        boolean bookingWasPaid = "PAID".equals(preCheck.getStateName());
+        double cancellationFee = ctx.policyManager.getCancellationPolicy()
+                .cancellationFee(preCheck, LocalDateTime.now());
 
         boolean cancelled = ctx.bookingService.cancelBooking(bookingId, reason);
         if (!cancelled) {
@@ -263,7 +281,15 @@ public class BookingsHandler extends BaseHandler {
         releaseSlotByBookingId(bookingId);
 
         Booking updated = ctx.bookingService.getBooking(bookingId);
-        sendOk(ex, new Dtos.BookingDto(updated));
+        Dtos.CancellationResultDto response = new Dtos.CancellationResultDto(updated);
+        response.bookingWasPaid = bookingWasPaid;
+        response.refundProcessed = refundTx != null;
+        response.refundAmount = refundTx != null ? refundTx.getAmount() : 0.0;
+        response.cancellationFee = cancellationFee;
+        response.cancellationPolicy = friendlyCancellationPolicy();
+        response.refundPolicy = bookingWasPaid ? friendlyRefundPolicy() : "No refund needed";
+        response.message = buildCancellationMessage(response);
+        sendOk(ex, response);
     }
 
     // -- Helpers --------------------------------------------------------------
@@ -276,6 +302,77 @@ public class BookingsHandler extends BaseHandler {
             send403(ex); return null;
         }
         return booking;
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex) throws IOException {
+        UserSession session = requireRole(ex, "CONSULTANT");
+        if (session == null) return null;
+        return requireApprovedConsultant(ex, session.getUserId());
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex, String consultantId) throws IOException {
+        Consultant consultant = ctx.userRepository.loadConsultant(consultantId);
+        if (consultant == null) {
+            send400(ex, "Consultant profile not found.");
+            return null;
+        }
+        if (consultant.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            sendError(ex, 403, consultantApprovalMessage(consultant));
+            return null;
+        }
+        return consultant;
+    }
+
+    private String consultantApprovalMessage(Consultant consultant) {
+        return consultant.getRegistrationStatus() == RegistrationStatus.REJECTED
+                ? "Consultant registration was rejected by an admin."
+                : "Consultant account is awaiting admin approval.";
+    }
+
+    private String friendlyCancellationPolicy() {
+        Object policy = ctx.policyManager.getCancellationPolicy();
+        if (policy instanceof DefaultCancellationPolicy) return "Default cancellation policy";
+        if (policy instanceof StrictCancellationPolicy) return "Strict cancellation policy";
+        return policy.getClass().getSimpleName();
+    }
+
+    private String friendlyRefundPolicy() {
+        Object policy = ctx.policyManager.getRefundPolicy();
+        if (policy instanceof DefaultRefundPolicy) return "Default refund (80%)";
+        if (policy instanceof FullRefundPolicy) return "Full refund (100%)";
+        if (policy instanceof NoRefundPolicy) return "No refund (0%)";
+        return policy.getClass().getSimpleName();
+    }
+
+    private String buildCancellationMessage(Dtos.CancellationResultDto result) {
+        StringBuilder message = new StringBuilder("Booking cancelled.");
+
+        if (result.cancellationFee > 0) {
+            message.append(" Cancellation fee: $")
+                    .append(formatMoney(result.cancellationFee))
+                    .append(".");
+        }
+
+        if (!result.bookingWasPaid) {
+            message.append(" No refund was needed because this booking had not been paid.");
+            return message.toString();
+        }
+
+        message.append(" Refund policy: ").append(result.refundPolicy).append(".");
+
+        if (result.refundProcessed) {
+            message.append(" Refund issued: $")
+                    .append(formatMoney(result.refundAmount))
+                    .append(". Check the Payments tab for the refund record.");
+        } else {
+            message.append(" Refund information is not available yet.");
+        }
+
+        return message.toString();
+    }
+
+    private String formatMoney(double amount) {
+        return String.format(Locale.US, "%.2f", amount);
     }
 
     /**

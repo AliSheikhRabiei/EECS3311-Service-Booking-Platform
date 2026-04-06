@@ -1,5 +1,5 @@
 # =============================================================================
-# ⚠️  DEVELOPMENT-ONLY FILE — DO NOT USE FOR NORMAL STARTUP
+# DEVELOPMENT-ONLY FILE - DO NOT USE FOR NORMAL STARTUP
 # =============================================================================
 # This file is for running ONLY the database + backend during active backend
 # development (when you don't need the frontend container).
@@ -7,8 +7,8 @@
 # For the full Phase 2 system (db + backend + frontend), always use the
 # docker-compose.yml in the PROJECT ROOT folder, one level above this file.
 #
-# Root:    EECS3311-Service-Booking-Platform/docker-compose.yml  ← USE THIS
-# This:    EECS3311-Service-Booking-Platform/Backend/docker-compose.yml  ← dev only
+# Root:    EECS3311-Service-Booking-Platform/docker-compose.yml  <- use this
+# This:    EECS3311-Service-Booking-Platform/Backend/docker-compose.yml  <- dev only
 # =============================================================================
 
 services:
@@ -18,8 +18,8 @@ services:
     container_name: booking_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       booking_platform
-      POSTGRES_USER:     postgres
+      POSTGRES_DB: booking_platform
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
@@ -37,19 +37,18 @@ services:
       dockerfile: Dockerfile
     container_name: booking_backend
     restart: unless-stopped
+    env_file:
+      - ../.env
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      PORT:           8080
-      DB_URL:         jdbc:postgresql://db:5432/booking_platform
-      DB_USER:        postgres
-      DB_PASSWORD:    postgres
-      ADMIN_EMAIL:    admin@platform.com
-      ADMIN_PASSWORD: admin123
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 8080
+      DB_URL: jdbc:postgresql://db:5432/booking_platform
+      DB_USER: postgres
+      DB_PASSWORD: postgres
 
 volumes:
   pgdata:

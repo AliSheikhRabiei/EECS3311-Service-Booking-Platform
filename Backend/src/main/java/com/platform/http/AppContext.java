@@ -22,7 +22,7 @@ import com.platform.service.ServiceCatalog;
  *  2. Creates all DB repositories
  *  3. Creates all Phase 1 services (pointing at DB repos)
  *  4. Reloads existing DB data back into the in-memory service layer
- *  5. Ensures the default admin account exists
+ *  5. Ensures the configured admin account exists
  *
  * Every HTTP handler receives an AppContext instance and calls through to
  * the services it needs — no handler instantiates anything itself.
@@ -83,8 +83,8 @@ public class AppContext {
         reloadFromDatabase();
 
         // ── 6. Ensure default admin ───────────────────────────────────────────
-        String adminEmail    = System.getenv().getOrDefault("ADMIN_EMAIL",    "admin@platform.com");
-        String adminPassword = System.getenv().getOrDefault("ADMIN_PASSWORD", "admin123");
+        String adminEmail    = requiredEnv("ADMIN_EMAIL");
+        String adminPassword = requiredEnv("ADMIN_PASSWORD");
         authService.createAdmin("Platform Admin", adminEmail, adminPassword);
     }
 
@@ -111,5 +111,13 @@ public class AppContext {
 
         System.out.println("[AppContext] Reloaded "
                 + catalog.listAllServices().size() + " service(s) from DB.");
+    }
+    private String requiredEnv(String key) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(
+                    key + " is required. Copy .env.example to .env or set " + key + " before starting the server.");
+        }
+        return value;
     }
 }

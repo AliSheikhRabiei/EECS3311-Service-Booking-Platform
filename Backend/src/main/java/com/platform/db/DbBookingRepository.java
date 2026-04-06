@@ -39,31 +39,31 @@ public class DbBookingRepository extends BookingRepository {
 
     /**
      * Inserts a new booking row or updates the status of an existing one.
-     * The slot UUID is looked up from time_slots using the booking's slot start time.
+     * New bookings reserve the slot and insert the booking in one DB transaction
+     * so two simultaneous requests cannot both claim the same slot.
      */
     @Override
     public void save(Booking b) {
-        // Look up the slot's DB UUID by consultant + start time
-        String consultantId = b.getService().getConsultant().getId();
-        SlotRepository.SlotRow slotRow = slotRepository
-                .findByConsultantAndStart(consultantId, b.getSlot().getStart());
-        String slotUuid = slotRow != null ? slotRow.id : b.getSlot().getSlotId();
+        if (b == null) throw new IllegalArgumentException("Booking must not be null.");
 
-        String sql = """
-                INSERT INTO bookings (id, client_id, service_id, slot_id, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (id) DO UPDATE
-                SET status = EXCLUDED.status
-                """;
-        try (Connection c = Database.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, b.getBookingId());
-            ps.setString(2, b.getClient().getId());
-            ps.setString(3, b.getService().getServiceId());
-            ps.setString(4, slotUuid);
-            ps.setString(5, BookingStateFactory.toDbString(b.getState()));
-            ps.setTimestamp(6, Timestamp.valueOf(b.getCreatedAt()));
-            ps.executeUpdate();
+        try (Connection c = Database.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                if (bookingExists(c, b.getBookingId())) {
+                    updateStatus(c, b.getBookingId(), BookingStateFactory.toDbString(b.getState()));
+                } else {
+                    String slotUuid = reserveSlotForCreate(c, b);
+                    if (slotUuid == null) {
+                        throw new IllegalStateException(
+                                "The selected time slot is not available: " + b.getSlot());
+                    }
+                    insertBooking(c, b, slotUuid);
+                }
+                c.commit();
+            } catch (Exception e) {
+                c.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
             throw new RuntimeException("DbBookingRepository.save failed: " + e.getMessage(), e);
         }
@@ -71,12 +71,8 @@ public class DbBookingRepository extends BookingRepository {
 
     /** Updates ONLY the status column (called after state transitions). */
     public void updateStatus(String bookingId, String status) {
-        String sql = "UPDATE bookings SET status = ? WHERE id = ?";
-        try (Connection c = Database.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, status);
-            ps.setString(2, bookingId);
-            ps.executeUpdate();
+        try (Connection c = Database.getConnection()) {
+            updateStatus(c, bookingId, status);
         } catch (SQLException e) {
             throw new RuntimeException("updateStatus failed: " + e.getMessage(), e);
         }
@@ -142,6 +138,59 @@ public class DbBookingRepository extends BookingRepository {
             throw new RuntimeException("findWhere failed: " + e.getMessage(), e);
         }
         return list;
+    }
+
+    private boolean bookingExists(Connection c, String bookingId) throws SQLException {
+        String sql = "SELECT 1 FROM bookings WHERE id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private String reserveSlotForCreate(Connection c, Booking b) throws SQLException {
+        String sql = """
+                UPDATE time_slots
+                SET is_available = FALSE
+                WHERE consultant_id = ?
+                  AND start_time = ?
+                  AND is_available = TRUE
+                RETURNING id
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, b.getService().getConsultant().getId());
+            ps.setTimestamp(2, Timestamp.valueOf(b.getSlot().getStart()));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString("id") : null;
+            }
+        }
+    }
+
+    private void insertBooking(Connection c, Booking b, String slotUuid) throws SQLException {
+        String sql = """
+                INSERT INTO bookings (id, client_id, service_id, slot_id, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, b.getBookingId());
+            ps.setString(2, b.getClient().getId());
+            ps.setString(3, b.getService().getServiceId());
+            ps.setString(4, slotUuid);
+            ps.setString(5, BookingStateFactory.toDbString(b.getState()));
+            ps.setTimestamp(6, Timestamp.valueOf(b.getCreatedAt()));
+            ps.executeUpdate();
+        }
+    }
+
+    private void updateStatus(Connection c, String bookingId, String status) throws SQLException {
+        String sql = "UPDATE bookings SET status = ? WHERE id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setString(2, bookingId);
+            ps.executeUpdate();
+        }
     }
 
     /**

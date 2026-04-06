@@ -334,3 +334,559 @@ tbody tr:hover { background: var(--gray-50); }
 
 /* ── Payment method tag ──────────────────────────────────────── */
 .pm-tag { font-size: .8rem; color: var(--gray-600); font-family: monospace; }
+
+/* Shared UX helpers */
+.toast-stack {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    z-index: 1200;
+    width: min(360px, calc(100vw - 2rem));
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .9rem 1rem;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, .18);
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+    color: var(--gray-800);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-success {
+    border-left: 4px solid var(--green);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fff9 100%);
+}
+
+.toast-error {
+    border-left: 4px solid var(--red);
+    background: linear-gradient(180deg, #ffffff 0%, #fff8f8 100%);
+}
+
+.toast-info {
+    border-left: 4px solid var(--blue);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.toast-copy {
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.toast-close {
+    border: none;
+    background: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: .1rem;
+}
+
+.toast-close:hover {
+    color: var(--gray-800);
+}
+
+.btn-loading {
+    pointer-events: none;
+}
+
+.spinner-inline {
+    width: 14px;
+    height: 14px;
+}
+
+.toolbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.toolbar-group {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.toolbar .form-group {
+    min-width: 180px;
+    margin-bottom: 0;
+}
+
+.toolbar-note {
+    font-size: .8rem;
+    color: var(--gray-600);
+}
+
+.summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.summary-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .55rem .8rem;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    font-size: .82rem;
+    color: var(--gray-600);
+}
+
+.summary-chip strong {
+    color: var(--gray-800);
+    font-size: .92rem;
+}
+
+.progress-track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(70px, 1fr));
+    gap: .5rem;
+    min-width: 280px;
+}
+
+.progress-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.progress-step::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: calc(50% + 14px);
+    right: calc(-50% + 14px);
+    height: 2px;
+    background: var(--gray-200);
+    z-index: 0;
+}
+
+.progress-step:last-child::after {
+    display: none;
+}
+
+.progress-step.done::after {
+    background: #93c5fd;
+}
+
+.progress-node {
+    position: relative;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    border: 2px solid var(--gray-200);
+    color: var(--gray-600);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.progress-step.done .progress-node {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+}
+
+.progress-label {
+    font-size: .69rem;
+    color: var(--gray-600);
+    line-height: 1.3;
+    text-transform: capitalize;
+}
+
+.progress-step.done .progress-label {
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+.progress-terminal {
+    display: inline-flex;
+    align-items: center;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.progress-terminal-rejected {
+    background: var(--red-light);
+    color: var(--red);
+}
+
+.progress-terminal-cancelled {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.schedule-card {
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.schedule-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .9rem;
+}
+
+.schedule-card-head h3 {
+    font-size: .96rem;
+}
+
+.schedule-card-head span {
+    color: var(--gray-600);
+    font-size: .8rem;
+}
+
+.schedule-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .7rem .8rem;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1px solid var(--gray-100);
+    margin-bottom: .6rem;
+}
+
+.schedule-slot:last-child {
+    margin-bottom: 0;
+}
+
+.schedule-slot strong {
+    display: block;
+    font-size: .88rem;
+}
+
+.schedule-slot-meta {
+    font-size: .78rem;
+    color: var(--gray-600);
+}
+
+.schedule-slot.reserved {
+    background: #f8fafc;
+}
+
+.input-with-action {
+    display: flex;
+    align-items: stretch;
+    gap: .5rem;
+}
+
+.input-action-btn {
+    min-width: 44px;
+    justify-content: center;
+    padding-left: .75rem;
+    padding-right: .75rem;
+}
+
+.table-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+.table-cell-stack small {
+    color: var(--gray-600);
+    font-size: .75rem;
+}
+
+.muted-note {
+    font-size: .78rem;
+    color: var(--gray-600);
+}
+
+.policy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    font-size: .875rem;
+}
+
+.login-link-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.login-link-row a {
+    color: var(--blue);
+    font-size: .84rem;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-link-row a:hover {
+    text-decoration: underline;
+}
+
+@media(max-width:900px) {
+    .progress-track {
+        grid-template-columns: repeat(2, minmax(90px, 1fr));
+        min-width: 0;
+    }
+
+    .progress-step::after {
+        display: none;
+    }
+}
+
+@media(max-width:720px) {
+    .toolbar,
+    .toolbar-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toolbar .form-group,
+    .toolbar .btn {
+        width: 100%;
+    }
+
+    .input-with-action {
+        flex-direction: column;
+    }
+
+    .action-row {
+        flex-wrap: wrap;
+    }
+
+    .policy-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .toast-stack {
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+    }
+}
+
+/* Landing page */
+.landing-body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(37,99,235,.18), transparent 28rem),
+        radial-gradient(circle at bottom right, rgba(22,163,74,.14), transparent 26rem),
+        linear-gradient(180deg, #f8fbff 0%, #eef4ff 45%, #f8fafc 100%);
+}
+
+.landing-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+}
+
+.landing-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.landing-copy,
+.landing-panel-card,
+.landing-card {
+    background: rgba(255,255,255,.84);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(148,163,184,.18);
+    box-shadow: 0 18px 40px rgba(37,99,235,.10);
+}
+
+.landing-copy {
+    border-radius: 28px;
+    padding: 3rem;
+}
+
+.landing-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    background: var(--blue-light);
+    color: var(--blue-dark);
+    border-radius: 999px;
+    padding: .35rem .8rem;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+.landing-copy h1 {
+    font-size: clamp(2.3rem, 4vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: -.04em;
+    max-width: 12ch;
+}
+
+.landing-lead {
+    margin-top: 1.15rem;
+    max-width: 58ch;
+    font-size: 1.02rem;
+    color: var(--gray-600);
+}
+
+.landing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .85rem;
+    margin-top: 1.75rem;
+}
+
+.landing-btn {
+    min-width: 150px;
+    justify-content: center;
+    padding: .8rem 1.25rem;
+}
+
+.landing-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-top: 2rem;
+}
+
+.landing-meta span {
+    background: rgba(37,99,235,.05);
+    border: 1px solid rgba(37,99,235,.10);
+    border-radius: 16px;
+    padding: .85rem 1rem;
+    color: var(--gray-600);
+    font-size: .88rem;
+}
+
+.landing-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.landing-panel-card {
+    border-radius: 24px;
+    padding: 1.5rem;
+}
+
+.landing-panel-primary {
+    background: linear-gradient(160deg, rgba(37,99,235,.96), rgba(30,41,59,.96));
+    color: var(--white);
+}
+
+.landing-panel-primary h2 {
+    font-size: 1.45rem;
+    margin-top: .4rem;
+}
+
+.landing-panel-label {
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .8;
+}
+
+.landing-steps {
+    margin-top: 1rem;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: .65rem;
+}
+
+.landing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.landing-card {
+    border-radius: 22px;
+    padding: 1.5rem;
+}
+
+.landing-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: .55rem;
+}
+
+.landing-card p,
+.landing-panel-card p {
+    color: var(--gray-600);
+    font-size: .92rem;
+}
+
+.landing-panel-primary p,
+.landing-panel-primary li {
+    color: rgba(255,255,255,.92);
+}
+
+@media (max-width: 900px) {
+    .landing-hero,
+    .landing-grid,
+    .landing-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-copy {
+        padding: 2rem 1.4rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .landing-shell {
+        padding: 1.25rem 1rem 2rem;
+    }
+
+    .landing-copy h1 {
+        max-width: none;
+    }
+
+    .landing-actions {
+        flex-direction: column;
+    }
+
+    .landing-btn {
+        width: 100%;
+    }
+}

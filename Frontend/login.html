@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login – Service Booking Platform</title>
+    <title>Login - Service Booking Platform</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,17 +12,15 @@
     <div class="login-box">
 
         <div class="login-logo">
-            <h1>📅 Service Booking</h1>
-            <p>EECS 3311 – Consulting Platform</p>
+            <h1>Service Booking</h1>
+            <p>EECS 3311 Consulting Platform</p>
         </div>
 
-        <!-- Toggle between Login / Register -->
         <div class="toggle-form">
             <button class="active" onclick="showForm('login')">Login</button>
             <button onclick="showForm('register')">Register</button>
         </div>
 
-        <!-- ── Login form ─────────────────────────────────────── -->
         <div id="loginForm">
             <div id="loginAlert" class="alert"></div>
 
@@ -32,20 +30,24 @@
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input id="loginPassword" type="password" class="form-control" placeholder="••••••">
+                <div class="input-with-action">
+                    <input id="loginPassword" type="password" class="form-control" placeholder="password">
+                    <button type="button" class="btn btn-outline input-action-btn" onclick="togglePassword('loginPassword', this)">Show</button>
+                </div>
             </div>
-            <button class="btn btn-primary btn-block" onclick="doLogin()">Sign In</button>
+            <button id="loginBtn" class="btn btn-primary btn-block" onclick="doLogin(this)">Sign In</button>
 
             <div class="login-footer">
-                Default admin: admin@platform.com / admin123
+                Admin login comes from your <code>.env</code> file. See <code>.env.example</code> for demo credentials.
+            </div>
+            <div class="login-link-row">
+                <a href="index.html">Back to welcome page</a>
             </div>
         </div>
 
-        <!-- ── Register form ──────────────────────────────────── -->
         <div id="registerForm" style="display:none">
             <div id="regAlert" class="alert"></div>
 
-            <!-- Role selector -->
             <div class="form-group">
                 <label>Register as</label>
                 <select id="regRole" class="form-control" onchange="toggleBio()">
@@ -64,18 +66,23 @@
             </div>
             <div class="form-group">
                 <label>Password <small>(min. 6 chars)</small></label>
-                <input id="regPassword" type="password" class="form-control" placeholder="••••••">
+                <div class="input-with-action">
+                    <input id="regPassword" type="password" class="form-control" placeholder="password">
+                    <button type="button" class="btn btn-outline input-action-btn" onclick="togglePassword('regPassword', this)">Show</button>
+                </div>
             </div>
 
-            <!-- Bio field only shown for consultants -->
             <div class="form-group" id="bioGroup" style="display:none">
-                <label>Bio / Speciality</label>
-                <input id="regBio" type="text" class="form-control" placeholder="e.g. Java & Systems Expert">
+                <label>Bio / Specialty</label>
+                <input id="regBio" type="text" class="form-control" placeholder="e.g. Java and systems expert">
             </div>
 
-            <button class="btn btn-primary btn-block" onclick="doRegister()">Create Account</button>
+            <button id="registerBtn" class="btn btn-primary btn-block" onclick="doRegister(this)">Create Account</button>
             <div class="login-footer" id="regNote" style="display:none">
                 Consultant accounts need admin approval before they can accept bookings.
+            </div>
+            <div class="login-link-row">
+                <a href="index.html">Back to welcome page</a>
             </div>
         </div>
 
@@ -83,61 +90,89 @@
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/auth.js"></script>
 <script>
-    /* If already logged in, redirect to the right dashboard */
-    const existingToken = localStorage.getItem('token');
-    const existingRole  = localStorage.getItem('role');
-    if (existingToken && existingRole) {
-        redirectByRole(existingRole);
+const existingToken = sessionStorage.getItem('token');
+const existingRole = sessionStorage.getItem('role');
+if (existingToken && existingRole) {
+    redirectByRole(existingRole);
+}
+
+function redirectByRole(role) {
+    const map = {
+        ADMIN: 'admin.html',
+        CLIENT: 'client.html',
+        CONSULTANT: 'consultant.html',
+    };
+    window.location.href = map[role] || 'login.html';
+}
+
+function showForm(which) {
+    document.getElementById('loginForm').style.display = which === 'login' ? '' : 'none';
+    document.getElementById('registerForm').style.display = which === 'register' ? '' : 'none';
+    document.querySelectorAll('.toggle-form button').forEach((button, index) => {
+        button.classList.toggle('active', (index === 0 && which === 'login') || (index === 1 && which === 'register'));
+    });
+}
+
+function toggleBio() {
+    const isConsultant = document.getElementById('regRole').value === 'consultant';
+    document.getElementById('bioGroup').style.display = isConsultant ? '' : 'none';
+    document.getElementById('regNote').style.display = isConsultant ? '' : 'none';
+}
+
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    if (button) {
+        button.textContent = reveal ? 'Hide' : 'Show';
+    }
+}
+
+function showMsg(id, message, type = 'error') {
+    showAlert(id, message, type);
+}
+
+async function doLogin(button) {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) {
+        showMsg('loginAlert', 'Please fill in all fields.');
+        return;
     }
 
-    function redirectByRole(role) {
-        const map = { ADMIN: 'admin.html', CLIENT: 'client.html', CONSULTANT: 'consultant.html' };
-        window.location.href = map[role] || 'login.html';
-    }
-
-    function showForm(which) {
-        document.getElementById('loginForm').style.display    = which === 'login'    ? '' : 'none';
-        document.getElementById('registerForm').style.display = which === 'register' ? '' : 'none';
-        // Update toggle buttons
-        document.querySelectorAll('.toggle-form button').forEach((b, i) => {
-            b.classList.toggle('active', (i === 0 && which === 'login') || (i === 1 && which === 'register'));
-        });
-    }
-
-    function toggleBio() {
-        const isConsultant = document.getElementById('regRole').value === 'consultant';
-        document.getElementById('bioGroup').style.display = isConsultant ? '' : 'none';
-        document.getElementById('regNote').style.display  = isConsultant ? '' : 'none';
-    }
-
-    async function doLogin() {
-        const email    = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        if (!email || !password) { showMsg('loginAlert', 'Please fill in all fields.'); return; }
-
+    const task = async () => {
         try {
             const data = await api.post('/auth/login', { email, password });
-            localStorage.setItem('token',  data.token);
-            localStorage.setItem('userId', data.userId);
-            localStorage.setItem('role',   data.role);
-            localStorage.setItem('name',   data.name);
-            localStorage.setItem('email',  data.email);
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('userId', data.userId);
+            sessionStorage.setItem('role', data.role);
+            sessionStorage.setItem('name', data.name);
+            sessionStorage.setItem('email', data.email);
             redirectByRole(data.role);
         } catch (err) {
             showMsg('loginAlert', err.message);
         }
+    };
+
+    return button ? withButtonLoading(button, 'Signing In...', task) : task();
+}
+
+async function doRegister(button) {
+    const role = document.getElementById('regRole').value;
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const bio = document.getElementById('regBio').value.trim();
+
+    if (!name || !email || !password) {
+        showMsg('regAlert', 'Please fill in all required fields.');
+        return;
     }
 
-    async function doRegister() {
-        const role     = document.getElementById('regRole').value;
-        const name     = document.getElementById('regName').value.trim();
-        const email    = document.getElementById('regEmail').value.trim();
-        const password = document.getElementById('regPassword').value;
-        const bio      = document.getElementById('regBio').value.trim();
-
-        if (!name || !email || !password) { showMsg('regAlert', 'Please fill in all required fields.'); return; }
-
+    const task = async () => {
         try {
             const path = role === 'consultant' ? '/auth/register/consultant' : '/auth/register/client';
             const body = role === 'consultant' ? { name, email, password, bio } : { name, email, password };
@@ -147,21 +182,26 @@
         } catch (err) {
             showMsg('regAlert', err.message);
         }
-    }
+    };
 
-    function showMsg(id, msg, type = 'error') {
-        const el = document.getElementById(id);
-        el.textContent = msg;
-        el.className = `alert alert-${type} show`;
-    }
+    return button ? withButtonLoading(button, 'Creating...', task) : task();
+}
 
-    /* Allow pressing Enter to submit */
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            if (document.getElementById('loginForm').style.display !== 'none') doLogin();
-            else doRegister();
-        }
-    });
+const mode = new URLSearchParams(window.location.search).get('mode');
+if (mode === 'register') {
+    showForm('register');
+}
+
+toggleBio();
+
+document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    if (document.getElementById('loginForm').style.display !== 'none') {
+        doLogin(document.getElementById('loginBtn'));
+        return;
+    }
+    doRegister(document.getElementById('registerBtn'));
+});
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /**
- * api.js — Backend communication layer
+ * api.js - Backend communication layer
  *
  * WHY JS IS NEEDED HERE:
  *   HTML forms can only do GET/POST to a URL and cause a full page reload.
@@ -14,12 +14,12 @@ const API_URL = 'http://localhost:8080';
 /**
  * Core fetch wrapper.
  * - Automatically adds Content-Type: application/json
- * - Automatically adds Authorization: Bearer <token> from localStorage
- * - On 401 → clears session and redirects to login
- * - On error → throws an Error with the backend's error message
+ * - Automatically adds Authorization: Bearer <token> from sessionStorage
+ * - On 401 -> clears session and redirects to login
+ * - On error -> throws an Error with the backend's error message
  */
 async function apiFetch(path, options = {}) {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
 
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -36,7 +36,7 @@ async function apiFetch(path, options = {}) {
 
     // Session expired or not logged in
     if (response.status === 401) {
-        localStorage.clear();
+        sessionStorage.clear();
         window.location.href = 'login.html';
         return;
     }
@@ -57,8 +57,8 @@ async function apiFetch(path, options = {}) {
 
 /** Convenience wrappers so callers don't repeat method/body setup */
 const api = {
-    get:    (path)         => apiFetch(path),
-    post:   (path, body)   => apiFetch(path, { method: 'POST',   body: JSON.stringify(body) }),
-    put:    (path, body)   => apiFetch(path, { method: 'PUT',    body: JSON.stringify(body) }),
-    delete: (path)         => apiFetch(path, { method: 'DELETE' }),
+    get:    (path)       => apiFetch(path),
+    post:   (path, body) => apiFetch(path, { method: 'POST', body: JSON.stringify(body) }),
+    put:    (path, body) => apiFetch(path, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (path)       => apiFetch(path, { method: 'DELETE' }),
 };

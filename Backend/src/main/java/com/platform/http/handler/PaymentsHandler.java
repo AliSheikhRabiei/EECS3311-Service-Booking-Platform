@@ -9,6 +9,8 @@ import com.platform.http.AppContext;
 import com.platform.http.BaseHandler;
 import com.platform.http.dto.Dtos;
 import com.platform.payment.*;
+import com.platform.state.ConfirmedState;
+import com.platform.state.PendingPaymentState;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
@@ -68,10 +70,10 @@ public class PaymentsHandler extends BaseHandler {
             } else {
                 send404(ex, "Payment endpoint not found.");
             }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             send400(ex, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[PaymentsHandler] Unexpected error: " + e.getMessage());
             send500(ex, "Unexpected error: " + e.getMessage());
         }
     }
@@ -207,8 +209,18 @@ public class PaymentsHandler extends BaseHandler {
         }
         if (method == null) { send404(ex, "Payment method not found: " + methodId); return; }
 
+        // Allow retrying a previously failed attempt that left the booking in PENDING_PAYMENT.
+        if (booking.getState() instanceof PendingPaymentState) {
+            booking.setState(new ConfirmedState());
+        }
+
         // Run Phase 1 payment chain (validate → process → markPaid)
         PaymentTransaction tx = ctx.paymentService.processPayment(booking, method);
+
+        // If payment fails, move the booking back to CONFIRMED so the client can retry.
+        if (tx != null && tx.getStatus() == PaymentStatus.FAILED) {
+            booking.setState(new ConfirmedState());
+        }
 
         // Persist state + transaction
         ctx.bookingRepository.updateStatus(bookingId,

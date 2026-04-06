@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
@@ -47,31 +46,29 @@ public class Database {
      * Called once on server startup; CREATE TABLE IF NOT EXISTS makes it idempotent.
      *
      * Parsing rules:
-     *  - Split the file on ";" to get individual statements.
-     *  - For each chunk, remove every line that is purely a SQL comment (starts with "--")
-     *    BEFORE deciding whether the chunk is empty. This is necessary because the first
-     *    chunk in schema.sql begins with several comment lines followed by the real
-     *    CREATE TABLE statement - without this step the whole chunk would be discarded
-     *    and the users table would never be created, breaking every foreign key after it.
-     *  - Inline comments at the end of a data line (e.g. "role VARCHAR(20) -- ADMIN")
-     *    are left in place; PostgreSQL handles them natively.
+     *  - Remove SQL line comments ("-- ...") before splitting into statements.
+     *    This keeps semicolons inside comments from breaking statement boundaries.
+     *  - Split the cleaned file on ";" to get individual statements.
+     *  - Trim and execute only non-empty statements.
      */
     public static void initialize() {
         try (InputStream is = Database.class.getClassLoader().getResourceAsStream("schema.sql")) {
             if (is == null) throw new RuntimeException("schema.sql not found in resources");
 
             String sql = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
-                    .lines().collect(Collectors.joining("\n"));
+                    .lines()
+                    // Strip both full-line and inline "--" comments from schema.sql.
+                    // This is sufficient for our controlled schema file and avoids
+                    // semicolons inside comments corrupting statement splitting.
+                    .map(line -> {
+                        int commentStart = line.indexOf("--");
+                        return commentStart >= 0 ? line.substring(0, commentStart) : line;
+                    })
+                    .collect(Collectors.joining("\n"));
 
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                for (String chunk : sql.split(";")) {
-                    // Strip full-line comments (lines whose first non-space chars are --)
-                    // then re-join and trim to see if any real SQL remains.
-                    String cleaned = Arrays.stream(chunk.split("\n"))
-                            .filter(line -> !line.trim().startsWith("--"))
-                            .collect(Collectors.joining("\n"))
-                            .trim();
-
+                for (String statement : sql.split(";")) {
+                    String cleaned = statement.trim();
                     if (!cleaned.isEmpty()) {
                         stmt.execute(cleaned);
                     }

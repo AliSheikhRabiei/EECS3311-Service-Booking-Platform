@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     id          VARCHAR(36)  PRIMARY KEY,
     client_id   VARCHAR(36)  NOT NULL REFERENCES users(id),
     method_type VARCHAR(30)  NOT NULL,
-    details     TEXT         NOT NULL   -- JSON: type-specific fields (masked in API)
+    details     TEXT         NOT NULL   -- JSON: masked stored fields only; CVV is never retained
 );
 
 CREATE TABLE IF NOT EXISTS payment_transactions (

@@ -2,6 +2,7 @@ package com.platform.http.handler;
 
 import com.google.gson.JsonObject;
 import com.platform.auth.UserSession;
+import com.platform.domain.RegistrationStatus;
 import com.platform.db.SlotRepository;
 import com.platform.domain.Consultant;
 import com.platform.domain.Service;
@@ -60,7 +61,7 @@ public class ServicesHandler extends BaseHandler {
         } catch (IllegalArgumentException e) {
             send400(ex, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[ServicesHandler] Unexpected error: " + e.getMessage());
             send500(ex, "Unexpected error: " + e.getMessage());
         }
     }
@@ -68,7 +69,8 @@ public class ServicesHandler extends BaseHandler {
     // ── GET /services ─────────────────────────────────────────────────────────
 
     private void listServices(HttpExchange ex) throws IOException {
-        List<Dtos.ServiceDto> dtos = ctx.catalog.listAllServices().stream()
+        List<Dtos.ServiceDto> dtos = ctx.serviceRepository.findAll().stream()
+                .filter(this::isPubliclyVisible)
                 .map(Dtos.ServiceDto::new)
                 .collect(Collectors.toList());
         sendOk(ex, dtos);
@@ -77,16 +79,22 @@ public class ServicesHandler extends BaseHandler {
     // ── GET /services/{id} ────────────────────────────────────────────────────
 
     private void getService(HttpExchange ex, String id) throws IOException {
-        Service s = ctx.catalog.findById(id);
-        if (s == null) { send404(ex, "Service not found: " + id); return; }
+        Service s = ctx.serviceRepository.findById(id);
+        if (s == null || !isPubliclyVisible(s)) {
+            send404(ex, "Service not found: " + id);
+            return;
+        }
         sendOk(ex, new Dtos.ServiceDto(s));
     }
 
     // ── GET /services/{id}/slots ──────────────────────────────────────────────
 
     private void getSlotsForService(HttpExchange ex, String serviceId) throws IOException {
-        Service s = ctx.catalog.findById(serviceId);
-        if (s == null) { send404(ex, "Service not found: " + serviceId); return; }
+        Service s = ctx.serviceRepository.findById(serviceId);
+        if (s == null || !isPubliclyVisible(s)) {
+            send404(ex, "Service not found: " + serviceId);
+            return;
+        }
 
         List<Dtos.SlotDto> slots = ctx.slotRepository
                 .findByConsultantId(s.getConsultant().getId())
@@ -101,8 +109,8 @@ public class ServicesHandler extends BaseHandler {
     // ── POST /services ────────────────────────────────────────────────────────
 
     private void addService(HttpExchange ex) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         JsonObject body = parseBody(ex);
         String title       = str(body, "title");
@@ -125,9 +133,6 @@ public class ServicesHandler extends BaseHandler {
             return;
         }
 
-        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
-        if (consultant == null) { send400(ex, "Consultant profile not found."); return; }
-
         String serviceId = "SVC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Service service  = new Service(serviceId, title,
                 description == null ? "" : description,
@@ -140,5 +145,31 @@ public class ServicesHandler extends BaseHandler {
         consultant.addService(service);
 
         sendCreated(ex, new Dtos.ServiceDto(service));
+    }
+
+    private boolean isPubliclyVisible(Service service) {
+        return service.getConsultant().getRegistrationStatus() == RegistrationStatus.APPROVED;
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex) throws IOException {
+        UserSession session = requireRole(ex, "CONSULTANT");
+        if (session == null) return null;
+
+        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
+        if (consultant == null) {
+            send400(ex, "Consultant profile not found.");
+            return null;
+        }
+        if (consultant.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            sendError(ex, 403, consultantApprovalMessage(consultant));
+            return null;
+        }
+        return consultant;
+    }
+
+    private String consultantApprovalMessage(Consultant consultant) {
+        return consultant.getRegistrationStatus() == RegistrationStatus.REJECTED
+                ? "Consultant registration was rejected by an admin."
+                : "Consultant account is awaiting admin approval.";
     }
 }

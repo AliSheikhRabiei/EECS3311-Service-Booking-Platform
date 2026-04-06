@@ -3,64 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Dashboard – Service Booking</title>
+    <title>Client Dashboard - Service Booking</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- ── Navigation bar ────────────────────────────────────────── -->
 <nav class="navbar">
-    <div class="navbar-brand">📅 Service Booking <span>Client Portal</span></div>
+    <div class="navbar-brand">Service Booking <span>Client Portal</span></div>
     <div class="navbar-right">
         <span class="navbar-user user-name-display"></span>
-        <button class="btn-logout" onclick="logout()">Logout</button>
+        <button class="btn-logout" onclick="logout(this)">Logout</button>
     </div>
 </nav>
 
-<!-- ── Tab buttons ────────────────────────────────────────────── -->
 <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-services"  onclick="switchTab('tab-services')">Browse Services</button>
-    <button class="tab-btn"        data-tab="tab-bookings"  onclick="switchTab('tab-bookings');loadBookings()">My Bookings</button>
-    <button class="tab-btn"        data-tab="tab-payments"  onclick="switchTab('tab-payments');loadPaymentMethods();loadPaymentHistory()">Payments</button>
+    <button class="tab-btn active" data-tab="tab-services" onclick="activateClientTab('tab-services')">Browse Services</button>
+    <button class="tab-btn" data-tab="tab-bookings" onclick="activateClientTab('tab-bookings')">My Bookings</button>
+    <button class="tab-btn" data-tab="tab-payments" onclick="activateClientTab('tab-payments')">Payments</button>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 1 – Browse Services (UC1) + Book (UC2)
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-services" class="page active">
-
     <div class="section-header">
         <h2>Available Services</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadServices()">↻ Refresh</button>
     </div>
     <div id="alertServices" class="alert"></div>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <div class="form-group">
+                <label for="serviceSearch">Search</label>
+                <input id="serviceSearch" class="form-control" placeholder="Search title, consultant, or description" oninput="renderServices()">
+            </div>
+            <div class="form-group">
+                <label for="serviceSort">Sort By</label>
+                <select id="serviceSort" class="form-control" onchange="renderServices()">
+                    <option value="recommended">Recommended</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="duration-asc">Duration: Shortest First</option>
+                    <option value="title-asc">Title: A to Z</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadServices(this)">Refresh</button>
+    </div>
+    <div id="serviceSummary" class="summary-row"></div>
 
     <div id="serviceGrid" class="service-grid">
-        <div class="empty"><p>Loading services…</p></div>
+        <div class="empty"><p>Loading services...</p></div>
     </div>
 
-    <!-- Slot picker (shown after selecting a service) -->
     <div id="slotSection" class="card" style="display:none; margin-top:1.5rem">
         <div class="card-title" id="slotTitle">Available Slots</div>
         <div id="alertSlots" class="alert"></div>
         <div id="slotList" class="slot-list"></div>
         <div id="bookBtn" style="margin-top:1rem; display:none">
-            <button class="btn btn-primary" onclick="confirmBook()">Confirm Booking</button>
+            <button id="confirmBookBtn" class="btn btn-primary" onclick="confirmBook(this)">Confirm Booking</button>
             <button class="btn btn-outline" onclick="cancelSlotPick()" style="margin-left:.5rem">Cancel</button>
         </div>
     </div>
-
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 2 – My Bookings (UC3, UC4)
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-bookings" class="page">
     <div class="section-header">
         <h2>My Bookings</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadBookings()">↻ Refresh</button>
     </div>
     <div id="alertBookings" class="alert"></div>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <div class="form-group">
+                <label for="bookingSearch">Search</label>
+                <input id="bookingSearch" class="form-control" placeholder="Search booking, service, or consultant" oninput="renderBookings()">
+            </div>
+            <div class="form-group">
+                <label for="bookingStatusFilter">Status</label>
+                <select id="bookingStatusFilter" class="form-control" onchange="renderBookings()">
+                    <option value="ALL">All statuses</option>
+                    <option value="REQUESTED">Requested</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="PENDING_PAYMENT">Pending Payment</option>
+                    <option value="PAID">Paid</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadBookings(this)">Refresh</button>
+    </div>
+    <div id="bookingSummary" class="summary-row"></div>
 
     <div class="card">
         <div class="table-wrap">
@@ -72,28 +102,23 @@
                         <th>Consultant</th>
                         <th>Slot</th>
                         <th>Status</th>
+                        <th>Progress</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="bookingsTable">
-                    <tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>
+                    <tr><td colspan="7"><div class="empty"><p>No bookings yet.</p></div></td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     TAB 3 – Payments (UC5, UC6, UC7)
-     ══════════════════════════════════════════════════════════════ -->
 <div id="tab-payments" class="page">
-
-    <!-- Payment Methods (UC6) -->
     <div class="card">
         <div class="card-title">Payment Methods (UC6)</div>
         <div id="alertPayMethods" class="alert"></div>
 
-        <!-- Method type selector toggles which fields are shown -->
         <div class="form-row">
             <div class="form-group">
                 <label>Payment Type</label>
@@ -106,7 +131,6 @@
             </div>
         </div>
 
-        <!-- Credit / Debit Card fields -->
         <div id="cardFields">
             <div class="form-row">
                 <div class="form-group">
@@ -121,10 +145,12 @@
             <div class="form-group" id="cvvGroup">
                 <label>CVV (3-4 digits)</label>
                 <input id="pmCvv" class="form-control" placeholder="123" maxlength="4" style="max-width:120px">
+                <p style="font-size:.75rem;color:var(--gray-500);margin-top:.35rem">
+                    Used only to validate a new card. CVV is never stored.
+                </p>
             </div>
         </div>
 
-        <!-- PayPal fields -->
         <div id="paypalFields" style="display:none">
             <div class="form-group">
                 <label>PayPal Email</label>
@@ -132,7 +158,6 @@
             </div>
         </div>
 
-        <!-- Bank Transfer fields -->
         <div id="bankFields" style="display:none">
             <div class="form-row">
                 <div class="form-group">
@@ -144,9 +169,12 @@
                     <input id="pmRouting" class="form-control" placeholder="021000021" maxlength="9">
                 </div>
             </div>
+            <p style="font-size:.75rem;color:var(--gray-500);margin-top:.35rem">
+                Saved bank details are stored in masked form only.
+            </p>
         </div>
 
-        <button class="btn btn-primary" onclick="addPaymentMethod()">Add Payment Method</button>
+        <button id="paymentMethodBtn" class="btn btn-primary" onclick="addPaymentMethod(this)">Add Payment Method</button>
 
         <div style="margin-top:1.5rem">
             <strong style="font-size:.875rem">Saved Methods</strong>
@@ -156,13 +184,12 @@
         </div>
     </div>
 
-    <!-- Pay for confirmed booking (UC5) -->
     <div class="card">
-        <div class="card-title">Pay for a Confirmed Booking (UC5)</div>
+        <div class="card-title">Pay for a Booking (UC5)</div>
         <div id="alertPay" class="alert"></div>
         <div class="form-row">
             <div class="form-group">
-                <label>Select Booking (CONFIRMED only)</label>
+                <label>Select Booking (confirmed or retry failed payment)</label>
                 <select id="payBookingSelect" class="form-control"></select>
             </div>
             <div class="form-group">
@@ -170,11 +197,10 @@
                 <select id="payMethodSelect" class="form-control"></select>
             </div>
         </div>
-        <button class="btn btn-success" onclick="doPay()">Process Payment</button>
+        <button class="btn btn-success" onclick="doPay(this)">Process Payment</button>
         <div id="payResult" style="margin-top:1rem; font-size:.875rem"></div>
     </div>
 
-    <!-- Payment History (UC7) -->
     <div class="card">
         <div class="card-title">Payment History (UC7)</div>
         <div class="table-wrap">
@@ -188,73 +214,133 @@
             </table>
         </div>
     </div>
-
 </div>
 
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-// ── Auth guard ────────────────────────────────────────────────
 const user = requireAuth('CLIENT');
 if (user) renderNavbar(user);
 
-// State for booking flow
+let servicesCache = [];
+let bookingsCache = [];
+let paymentMethodsCache = [];
 let selectedServiceId = null;
-let selectedSlotUuid  = null;
+let selectedSlotUuid = null;
+let updatingMethodId = null;
 
-// ── Tab 1: Services & Booking ─────────────────────────────────
-
-async function loadServices() {
-    try {
-        const services = await api.get('/services');
-        const grid = document.getElementById('serviceGrid');
-        if (!services.length) {
-            grid.innerHTML = '<div class="empty"><p>No services available yet.</p></div>';
-            return;
-        }
-        grid.innerHTML = services.map(s => `
-            <div class="service-card">
-                <h3>${s.title}</h3>
-                <div class="meta">by ${s.consultantName} &bull; ${s.durationMin} min</div>
-                <div class="price">$${s.price.toFixed(2)}</div>
-                <button class="btn btn-outline btn-sm" style="margin-top:.75rem"
-                    onclick="pickService('${s.serviceId}','${s.title}')">
-                    Select & Book
-                </button>
-            </div>
-        `).join('');
-    } catch (err) {
-        showAlert('alertServices', err.message);
+function activateClientTab(tabId) {
+    switchTab(tabId);
+    if (tabId === 'tab-bookings') {
+        loadBookings();
+        return;
     }
+    if (tabId === 'tab-payments') {
+        loadPaymentsTab();
+        return;
+    }
+    loadServices();
 }
 
-async function pickService(serviceId, title) {
+function setServicesLoading() {
+    document.getElementById('serviceGrid').innerHTML = '<div class="empty"><div class="spinner"></div><p style="margin-top:.75rem">Loading services...</p></div>';
+}
+
+async function loadServices(button) {
+    const task = async () => {
+        setServicesLoading();
+        try {
+            servicesCache = await api.get('/services');
+            renderServices();
+        } catch (err) {
+            showAlert('alertServices', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Refreshing...', task) : task();
+}
+
+function renderServices() {
+    const grid = document.getElementById('serviceGrid');
+    const term = document.getElementById('serviceSearch').value.trim().toLowerCase();
+    const sort = document.getElementById('serviceSort').value;
+    let filtered = servicesCache.filter(service => {
+        const haystack = [
+            service.title,
+            service.consultantName,
+            service.description,
+        ].join(' ').toLowerCase();
+        return !term || haystack.includes(term);
+    });
+
+    filtered = filtered.slice().sort((a, b) => {
+        if (sort === 'price-asc') return Number(a.price) - Number(b.price);
+        if (sort === 'price-desc') return Number(b.price) - Number(a.price);
+        if (sort === 'duration-asc') return Number(a.durationMin) - Number(b.durationMin);
+        if (sort === 'title-asc') return String(a.title).localeCompare(String(b.title));
+        return 0;
+    });
+
+    document.getElementById('serviceSummary').innerHTML = `
+        <span class="summary-chip"><strong>${servicesCache.length}</strong> services total</span>
+        <span class="summary-chip"><strong>${filtered.length}</strong> shown</span>
+        <span class="summary-chip">Pick a service, then choose a 1-hour slot</span>
+    `;
+
+    if (!filtered.length) {
+        grid.innerHTML = '<div class="empty"><p>No services match your search yet.</p></div>';
+        return;
+    }
+
+    grid.innerHTML = filtered.map(s => `
+        <div class="service-card">
+            <h3>${escapeHtml(s.title)}</h3>
+            <div class="meta">by ${escapeHtml(s.consultantName)} &bull; ${Number(s.durationMin)} min</div>
+            <div class="price">$${Number(s.price).toFixed(2)}</div>
+            <p class="muted-note" style="margin-top:.65rem">${escapeHtml(s.description || 'No description provided yet.')}</p>
+            <button class="btn btn-outline btn-sm" style="margin-top:.85rem"
+                data-service-id="${escapeAttr(s.serviceId)}"
+                data-service-title="${escapeAttr(s.title)}"
+                onclick="pickService(this, this.dataset.serviceId, this.dataset.serviceTitle)">
+                Select & Book
+            </button>
+        </div>
+    `).join('');
+}
+
+async function pickService(button, serviceId, title) {
     selectedServiceId = serviceId;
-    selectedSlotUuid  = null;
+    selectedSlotUuid = null;
     document.getElementById('slotSection').style.display = '';
-    document.getElementById('slotTitle').textContent = `Available Slots – ${title}`;
-    document.getElementById('bookBtn').style.display  = 'none';
+    document.getElementById('slotTitle').textContent = `Available Slots - ${title}`;
+    document.getElementById('bookBtn').style.display = 'none';
     document.getElementById('slotList').innerHTML = '<div class="spinner"></div>';
 
-    try {
-        const slots = await api.get(`/services/${serviceId}/slots`);
-        if (!slots.length) {
-            document.getElementById('slotList').innerHTML = '<p style="color:var(--gray-400);font-size:.875rem">No available slots for this service.</p>';
-            return;
+    const task = async () => {
+        try {
+            const slots = await api.get(`/services/${serviceId}/slots`);
+            if (!slots.length) {
+                document.getElementById('slotList').innerHTML = '<p style="color:var(--gray-400);font-size:.875rem">No available slots for this service.</p>';
+                return;
+            }
+
+            document.getElementById('slotList').innerHTML = slots.map(sl => `
+                <span class="slot-pill" id="slot-${escapeAttr(sl.id)}" data-slot-id="${escapeAttr(sl.id)}" onclick="selectSlot(this.dataset.slotId)">
+                    ${fmtSlot(sl.start)}
+                </span>
+            `).join('');
+            document.getElementById('slotSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (err) {
+            showAlert('alertSlots', err.message);
         }
-        document.getElementById('slotList').innerHTML = slots.map(sl => `
-            <span class="slot-pill" id="slot-${sl.id}" onclick="selectSlot('${sl.id}','${sl.start}')">
-                ${fmtSlot(sl.start)}
-            </span>
-        `).join('');
-    } catch (err) {
-        showAlert('alertSlots', err.message);
-    }
+    };
+
+    return button ? withButtonLoading(button, 'Loading...', task) : task();
 }
 
-function selectSlot(uuid, start) {
+function selectSlot(uuid) {
     document.querySelectorAll('.slot-pill').forEach(p => p.classList.remove('selected'));
-    document.getElementById(`slot-${uuid}`).classList.add('selected');
+    const pill = document.getElementById(`slot-${uuid}`);
+    if (pill) pill.classList.add('selected');
     selectedSlotUuid = uuid;
     document.getElementById('bookBtn').style.display = '';
 }
@@ -262,181 +348,257 @@ function selectSlot(uuid, start) {
 function cancelSlotPick() {
     document.getElementById('slotSection').style.display = 'none';
     selectedServiceId = null;
-    selectedSlotUuid  = null;
+    selectedSlotUuid = null;
 }
 
-async function confirmBook() {
+async function confirmBook(button) {
     if (!selectedServiceId || !selectedSlotUuid) return;
-    try {
-        const booking = await api.post('/bookings', {
-            serviceId: selectedServiceId,
-            slotUuid:  selectedSlotUuid,
-        });
-        cancelSlotPick();
-        showAlert('alertServices', `Booking ${booking.bookingId} created! Status: ${booking.status}`, 'success');
-        loadServices(); // refresh slot availability
-    } catch (err) {
-        showAlert('alertSlots', err.message);
-    }
-}
-
-// ── Tab 2: My Bookings ────────────────────────────────────────
-
-async function loadBookings() {
-    try {
-        const bookings = await api.get('/bookings');
-        const tbody = document.getElementById('bookingsTable');
-        if (!bookings.length) {
-            tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><p>No bookings yet.</p></div></td></tr>';
-            // Also update dropdowns in payment tab
-            populateBookingDropdown([], []);
-            return;
+    const task = async () => {
+        try {
+            const booking = await api.post('/bookings', {
+                serviceId: selectedServiceId,
+                slotUuid: selectedSlotUuid,
+            });
+            cancelSlotPick();
+            showAlert('alertServices', `Booking ${booking.bookingId} created! Status: ${booking.status}`, 'success');
+            await loadBookings();
+        } catch (err) {
+            showAlert('alertSlots', err.message);
         }
-
-        tbody.innerHTML = bookings.map(b => `
-            <tr>
-                <td><code>${b.bookingId}</code></td>
-                <td>${b.serviceTitle}</td>
-                <td>${b.consultantName}</td>
-                <td>${fmtSlot(b.slotStart)}</td>
-                <td>${badge(b.status)}</td>
-                <td>
-                    <div class="action-row">
-                        ${canCancel(b.status) ? `<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.bookingId}')">Cancel</button>` : ''}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-
-        // Populate payment selectors
-        const confirmed = bookings.filter(b => b.status === 'CONFIRMED');
-        populateBookingDropdown(confirmed, bookings);
-    } catch (err) {
-        showAlert('alertBookings', err.message);
-    }
+    };
+    return button ? withButtonLoading(button, 'Booking...', task) : task();
 }
 
 function canCancel(status) {
-    return ['REQUESTED','CONFIRMED','PENDING_PAYMENT','PAID'].includes(status);
+    return ['REQUESTED', 'CONFIRMED', 'PENDING_PAYMENT', 'PAID'].includes(status);
 }
 
-async function cancelBooking(bookingId) {
-    if (!confirm(`Cancel booking ${bookingId}?`)) return;
-    try {
-        await api.post(`/bookings/${bookingId}/cancel`, { reason: 'Client requested cancellation' });
-        showAlert('alertBookings', 'Booking cancelled.', 'success');
-        loadBookings();
-    } catch (err) {
-        showAlert('alertBookings', err.message);
+function canPay(status) {
+    return ['CONFIRMED', 'PENDING_PAYMENT'].includes(status);
+}
+
+async function loadBookings(button) {
+    const task = async () => {
+        try {
+            bookingsCache = await api.get('/bookings');
+            renderBookings();
+        } catch (err) {
+            showAlert('alertBookings', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Refreshing...', task) : task();
+}
+
+function renderBookings() {
+    const tbody = document.getElementById('bookingsTable');
+    const term = document.getElementById('bookingSearch').value.trim().toLowerCase();
+    const status = document.getElementById('bookingStatusFilter').value;
+    const filtered = bookingsCache.filter(booking => {
+        const haystack = [
+            booking.bookingId,
+            booking.serviceTitle,
+            booking.consultantName,
+        ].join(' ').toLowerCase();
+        const matchesTerm = !term || haystack.includes(term);
+        const matchesStatus = status === 'ALL' || booking.status === status;
+        return matchesTerm && matchesStatus;
+    });
+
+    const payableCount = bookingsCache.filter(b => canPay(b.status)).length;
+    const activeCount = bookingsCache.filter(b => canCancel(b.status)).length;
+    document.getElementById('bookingSummary').innerHTML = `
+        <span class="summary-chip"><strong>${bookingsCache.length}</strong> total bookings</span>
+        <span class="summary-chip"><strong>${payableCount}</strong> ready to pay</span>
+        <span class="summary-chip"><strong>${activeCount}</strong> can still be cancelled</span>
+    `;
+
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No bookings match your filters.</p></div></td></tr>';
+        populateBookingDropdown(bookingsCache.filter(b => canPay(b.status)));
+        return;
     }
+
+    tbody.innerHTML = filtered.map(b => `
+        <tr>
+            <td>
+                <div class="table-cell-stack">
+                    <code>${escapeHtml(b.bookingId)}</code>
+                    <button class="btn btn-outline btn-sm" data-booking-id="${escapeAttr(b.bookingId)}" onclick="copyText(this.dataset.bookingId, 'Booking ID copied.')">Copy ID</button>
+                </div>
+            </td>
+            <td>${escapeHtml(b.serviceTitle)}</td>
+            <td>${escapeHtml(b.consultantName)}</td>
+            <td>${fmtSlot(b.slotStart)}</td>
+            <td>${badge(b.status)}</td>
+            <td>${renderBookingProgress(b.status)}</td>
+            <td>
+                <div class="action-row">
+                    ${canCancel(b.status) ? `<button class="btn btn-danger btn-sm" data-booking-id="${escapeAttr(b.bookingId)}" onclick="cancelBooking(this, this.dataset.bookingId)">Cancel</button>` : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    populateBookingDropdown(bookingsCache.filter(b => canPay(b.status)));
 }
 
-// ── Tab 3: Payments ───────────────────────────────────────────
+async function cancelBooking(button, bookingId) {
+    if (!confirm(`Cancel booking ${bookingId}?`)) return;
+    const task = async () => {
+        try {
+            const result = await api.post(`/bookings/${bookingId}/cancel`, { reason: 'Client requested cancellation' });
+            showAlert('alertBookings', result.message || 'Booking cancelled.', 'success');
+            await loadBookings();
+            await loadPaymentHistory();
+        } catch (err) {
+            showAlert('alertBookings', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Cancelling...', task) : task();
+}
 
 function togglePmFields() {
     const type = document.getElementById('pmType').value;
-    document.getElementById('cardFields').style.display   = (type === 'CREDIT_CARD' || type === 'DEBIT_CARD') ? '' : 'none';
-    document.getElementById('cvvGroup').style.display     = type === 'CREDIT_CARD' ? '' : 'none';
-    document.getElementById('paypalFields').style.display = type === 'PAYPAL'       ? '' : 'none';
-    document.getElementById('bankFields').style.display   = type === 'BANK_TRANSFER'? '' : 'none';
+    document.getElementById('cardFields').style.display = (type === 'CREDIT_CARD' || type === 'DEBIT_CARD') ? '' : 'none';
+    document.getElementById('cvvGroup').style.display = type === 'CREDIT_CARD' ? '' : 'none';
+    document.getElementById('paypalFields').style.display = type === 'PAYPAL' ? '' : 'none';
+    document.getElementById('bankFields').style.display = type === 'BANK_TRANSFER' ? '' : 'none';
 }
 
 async function loadPaymentMethods() {
     try {
-        const methods = await api.get('/payments/methods');
+        paymentMethodsCache = await api.get('/payments/methods');
         const container = document.getElementById('pmList');
-        if (!methods.length) {
+        if (!paymentMethodsCache.length) {
             container.innerHTML = '<div class="empty"><p>No payment methods saved.</p></div>';
         } else {
-            container.innerHTML = methods.map(m => `
+            container.innerHTML = paymentMethodsCache.map(m => `
                 <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;flex-wrap:wrap">
-                    <span class="badge badge-confirmed">${m.methodType}</span>
-                    <span class="pm-tag">${m.displayName}</span>
-                    <button class="btn btn-outline btn-sm" onclick="startUpdateMethod('${m.methodId}','${m.methodType}')">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="removeMethod('${m.methodId}')">Remove</button>
+                    <span class="badge badge-confirmed">${escapeHtml(m.methodType)}</span>
+                    <span class="pm-tag">${escapeHtml(m.displayName)}</span>
+                    <button class="btn btn-outline btn-sm" data-method-id="${escapeAttr(m.methodId)}" data-method-type="${escapeAttr(m.methodType)}" onclick="startUpdateMethod(this.dataset.methodId, this.dataset.methodType)">Edit</button>
+                    <button class="btn btn-danger btn-sm" data-method-id="${escapeAttr(m.methodId)}" onclick="removeMethod(this, this.dataset.methodId)">Remove</button>
                 </div>
             `).join('');
         }
 
-        // Update method dropdown for payment
         const sel = document.getElementById('payMethodSelect');
-        sel.innerHTML = methods.length
-            ? methods.map(m => `<option value="${m.methodId}">${m.displayName}</option>`).join('')
+        sel.innerHTML = paymentMethodsCache.length
+            ? paymentMethodsCache.map(m => `<option value="${escapeAttr(m.methodId)}">${escapeHtml(m.displayName)}</option>`).join('')
             : '<option disabled>No methods saved</option>';
     } catch (err) {
         showAlert('alertPayMethods', err.message);
     }
 }
 
-
-async function removeMethod(methodId) {
-    try {
-        await api.delete(`/payments/methods/${methodId}`);
-        loadPaymentMethods();
-    } catch (err) {
-        showAlert('alertPayMethods', err.message);
-    }
+async function removeMethod(button, methodId) {
+    if (!confirm('Remove this payment method?')) return;
+    const task = async () => {
+        try {
+            await api.delete(`/payments/methods/${methodId}`);
+            showAlert('alertPayMethods', 'Payment method removed.', 'success');
+            await loadPaymentMethods();
+        } catch (err) {
+            showAlert('alertPayMethods', err.message);
+        }
+    };
+    return button ? withButtonLoading(button, 'Removing...', task) : task();
 }
 
-// UC6 – Update: pre-fill the form with the existing method's type so the user
-// can change the details and click "Add" — which calls PUT instead of POST.
-let updatingMethodId = null;
 function startUpdateMethod(methodId, methodType) {
     updatingMethodId = methodId;
     document.getElementById('pmType').value = methodType;
     togglePmFields();
-    showAlert('alertPayMethods',
-        'Edit the fields below and click "Update Method" to save changes.', 'info');
-    document.querySelector('[onclick="addPaymentMethod()"]').textContent = 'Update Method';
+    showAlert('alertPayMethods', 'Edit the fields below and click "Update Method" to save changes.', 'info');
+    document.getElementById('paymentMethodBtn').textContent = 'Update Method';
     document.getElementById('pmType').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function addPaymentMethod() {
-    if (updatingMethodId) {
-        // UC6 update flow: call PUT /payments/methods/{id}
-        const type = document.getElementById('pmType').value;
-        const body = buildMethodBody(type);
-        body.type = type;
-        try {
-            // Use api.put() — goes through the shared apiFetch wrapper (correct auth, correct API_URL)
-            await api.put(`/payments/methods/${updatingMethodId}`, body);
-            showAlert('alertPayMethods', 'Payment method updated.', 'success');
-        } catch (err) {
-            showAlert('alertPayMethods', err.message);
+function validatePaymentMethod(type, body) {
+    if (type === 'CREDIT_CARD' || type === 'DEBIT_CARD') {
+        if (!/^\d{16}$/.test(body.cardNumber || '')) {
+            showAlert('alertPayMethods', 'Card number must be exactly 16 digits.');
+            return false;
         }
-        updatingMethodId = null;
-        document.querySelector('[onclick="addPaymentMethod()"]').textContent = 'Add Payment Method';
-        loadPaymentMethods();
-        return;
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(body.expiry || '')) {
+            showAlert('alertPayMethods', 'Expiry must use MM/yy format.');
+            return false;
+        }
+        if (type === 'CREDIT_CARD' && !/^\d{3,4}$/.test(body.cvv || '')) {
+            showAlert('alertPayMethods', 'CVV must be 3 or 4 digits.');
+            return false;
+        }
     }
-    // Original add flow below
-    _doAddPaymentMethod();
+    if (type === 'PAYPAL' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email || '')) {
+        showAlert('alertPayMethods', 'Enter a valid PayPal email address.');
+        return false;
+    }
+    if (type === 'BANK_TRANSFER') {
+        if (!/^\d{8,17}$/.test(body.accountNumber || '')) {
+            showAlert('alertPayMethods', 'Account number must be 8 to 17 digits.');
+            return false;
+        }
+        if (!/^\d{9}$/.test(body.routingNumber || '')) {
+            showAlert('alertPayMethods', 'Routing number must be exactly 9 digits.');
+            return false;
+        }
+    }
+    return true;
 }
 
-async function _doAddPaymentMethod() {
+async function addPaymentMethod(button) {
     const type = document.getElementById('pmType').value;
     const body = buildMethodBody(type);
     body.type = type;
-    try {
-        await api.post('/payments/methods', body);
-        showAlert('alertPayMethods', 'Payment method added.', 'success');
-        loadPaymentMethods();
-    } catch (err) {
-        showAlert('alertPayMethods', err.message);
+    if (!validatePaymentMethod(type, body)) {
+        return;
     }
+
+    const task = async () => {
+        try {
+            if (updatingMethodId) {
+                await api.put(`/payments/methods/${updatingMethodId}`, body);
+                showAlert('alertPayMethods', 'Payment method updated.', 'success');
+            } else {
+                await api.post('/payments/methods', body);
+                showAlert('alertPayMethods', 'Payment method added.', 'success');
+            }
+            resetPaymentForm();
+            await loadPaymentMethods();
+        } catch (err) {
+            showAlert('alertPayMethods', err.message);
+        }
+    };
+
+    return button ? withButtonLoading(button, updatingMethodId ? 'Updating...' : 'Saving...', task) : task();
+}
+
+function resetPaymentForm() {
+    updatingMethodId = null;
+    document.getElementById('paymentMethodBtn').textContent = 'Add Payment Method';
+    document.getElementById('pmType').value = 'CREDIT_CARD';
+    document.getElementById('pmCardNum').value = '';
+    document.getElementById('pmExpiry').value = '';
+    document.getElementById('pmCvv').value = '';
+    document.getElementById('pmPaypalEmail').value = '';
+    document.getElementById('pmAccount').value = '';
+    document.getElementById('pmRouting').value = '';
+    togglePmFields();
 }
 
 function buildMethodBody(type) {
     if (type === 'CREDIT_CARD') return {
         cardNumber: document.getElementById('pmCardNum').value.trim(),
-        expiry:     document.getElementById('pmExpiry').value.trim(),
-        cvv:        document.getElementById('pmCvv').value.trim(),
+        expiry: document.getElementById('pmExpiry').value.trim(),
+        cvv: document.getElementById('pmCvv').value.trim(),
     };
     if (type === 'DEBIT_CARD') return {
         cardNumber: document.getElementById('pmCardNum').value.trim(),
-        expiry:     document.getElementById('pmExpiry').value.trim(),
+        expiry: document.getElementById('pmExpiry').value.trim(),
     };
-    if (type === 'PAYPAL') return { email: document.getElementById('pmPaypalEmail').value.trim() };
+    if (type === 'PAYPAL') return {
+        email: document.getElementById('pmPaypalEmail').value.trim(),
+    };
     if (type === 'BANK_TRANSFER') return {
         accountNumber: document.getElementById('pmAccount').value.trim(),
         routingNumber: document.getElementById('pmRouting').value.trim(),
@@ -444,35 +606,42 @@ function buildMethodBody(type) {
     return {};
 }
 
-function populateBookingDropdown(confirmed, all) {
+function populateBookingDropdown(payableBookings) {
     const sel = document.getElementById('payBookingSelect');
-    sel.innerHTML = confirmed.length
-        ? confirmed.map(b => `<option value="${b.bookingId}">${b.bookingId} – ${b.serviceTitle}</option>`).join('')
-        : '<option disabled>No confirmed bookings</option>';
+    sel.innerHTML = payableBookings.length
+        ? payableBookings.map(b => `<option value="${escapeAttr(b.bookingId)}">${escapeHtml(b.bookingId)} - ${escapeHtml(b.serviceTitle)}${b.status === 'PENDING_PAYMENT' ? ' (retry payment)' : ''}</option>`).join('')
+        : '<option disabled>No payable bookings</option>';
 }
 
-async function doPay() {
+async function doPay(button) {
     const bookingId = document.getElementById('payBookingSelect').value;
-    const methodId  = document.getElementById('payMethodSelect').value;
-    if (!bookingId || !methodId) { showAlert('alertPay', 'Select a booking and a payment method.'); return; }
-
-    document.getElementById('payResult').textContent = 'Processing…';
-    try {
-        const tx = await api.post('/payments/pay', { bookingId, methodId });
-        const resultDiv = document.getElementById('payResult');
-        if (tx.status === 'SUCCESS') {
-            resultDiv.innerHTML = `<span style="color:var(--green)">✓ Payment successful! Transaction: ${tx.id} | $${tx.amount.toFixed(2)}</span>`;
-            showAlert('alertPay', 'Payment successful!', 'success');
-        } else {
-            resultDiv.innerHTML = `<span style="color:var(--red)">✗ Payment failed (${tx.status}). Please try again.</span>`;
-            showAlert('alertPay', 'Payment failed. Please retry.');
-        }
-        loadBookings();
-        loadPaymentHistory();
-    } catch (err) {
-        document.getElementById('payResult').textContent = '';
-        showAlert('alertPay', err.message);
+    const methodId = document.getElementById('payMethodSelect').value;
+    if (!bookingId || !methodId) {
+        showAlert('alertPay', 'Select a booking and a payment method.');
+        return;
     }
+
+    const task = async () => {
+        document.getElementById('payResult').textContent = 'Processing...';
+        try {
+            const tx = await api.post('/payments/pay', { bookingId, methodId });
+            const resultDiv = document.getElementById('payResult');
+            if (tx.status === 'SUCCESS') {
+                resultDiv.innerHTML = `<span style="color:var(--green)">Payment successful! Transaction: ${escapeHtml(tx.id)} | $${Number(tx.amount).toFixed(2)}</span>`;
+                showAlert('alertPay', 'Payment successful!', 'success');
+            } else {
+                resultDiv.innerHTML = `<span style="color:var(--red)">Payment failed (${escapeHtml(tx.status)}). The booking is still available for another payment attempt.</span>`;
+                showAlert('alertPay', 'Payment failed. You can try again.', 'error');
+            }
+            await loadBookings();
+            await loadPaymentHistory();
+        } catch (err) {
+            document.getElementById('payResult').textContent = '';
+            showAlert('alertPay', err.message);
+        }
+    };
+
+    return button ? withButtonLoading(button, 'Processing...', task) : task();
 }
 
 async function loadPaymentHistory() {
@@ -483,134 +652,209 @@ async function loadPaymentHistory() {
             tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>No transactions yet.</p></div></td></tr>';
             return;
         }
+
         tbody.innerHTML = txns.map(t => `
             <tr>
-                <td><code>${t.id}</code></td>
-                <td><code>${t.bookingId}</code></td>
-                <td>$${t.amount.toFixed(2)}</td>
+                <td><code>${escapeHtml(t.id)}</code></td>
+                <td><code>${escapeHtml(t.bookingId)}</code></td>
+                <td>$${Number(t.amount).toFixed(2)}</td>
                 <td>${badge(t.status)}</td>
                 <td>${fmtDate(t.timestamp)}</td>
             </tr>
         `).join('');
     } catch (err) {
-        // Silent fail on history – not critical
+        // Payment history is optional for the rest of the dashboard.
     }
 }
 
-// ── Init ──────────────────────────────────────────────────────
-loadServices();
+async function loadPaymentsTab() {
+    await loadBookings();
+    await loadPaymentMethods();
+    await loadPaymentHistory();
+}
+
+function initClientDashboard() {
+    togglePmFields();
+    const activeTab = restoreSavedTab('tab-services');
+    if (activeTab === 'tab-bookings') {
+        loadBookings();
+        return;
+    }
+    if (activeTab === 'tab-payments') {
+        loadPaymentsTab();
+        return;
+    }
+    loadServices();
+}
+
+initClientDashboard();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     AI CUSTOMER ASSISTANT CHATBOT WIDGET
-     Floating button (bottom-right) → opens a chat panel.
-     Calls POST /chat on the backend — the backend calls OpenAI.
-     No API key or personal data ever leaves the backend.
-     ═══════════════════════════════════════════════════════════ -->
-
 <style>
-/* Chat widget styles — scoped so they don't affect other elements */
 #chatBtn {
-    position: fixed; bottom: 2rem; right: 2rem;
-    width: 56px; height: 56px;
-    background: var(--blue); color: var(--white);
-    border: none; border-radius: 50%;
-    font-size: 1.4rem; cursor: pointer;
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 56px;
+    height: 56px;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    cursor: pointer;
     box-shadow: 0 4px 12px rgba(37,99,235,.4);
     z-index: 1000;
     transition: background .15s, transform .15s;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-#chatBtn:hover { background: var(--blue-dark); transform: scale(1.08); }
+
+#chatBtn:hover {
+    background: var(--blue-dark);
+    transform: scale(1.08);
+}
 
 #chatPanel {
-    position: fixed; bottom: 5.5rem; right: 2rem;
-    width: 360px; max-height: 520px;
+    position: fixed;
+    bottom: 5.5rem;
+    right: 2rem;
+    width: 360px;
+    max-height: 520px;
     background: var(--white);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,.15);
-    display: none; flex-direction: column;
-    z-index: 1000; overflow: hidden;
+    display: none;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
 }
-#chatPanel.open { display: flex; }
+
+#chatPanel.open {
+    display: flex;
+}
 
 #chatHeader {
-    background: var(--blue); color: var(--white);
+    background: var(--blue);
+    color: var(--white);
     padding: .85rem 1.1rem;
-    display: flex; align-items: center; justify-content: space-between;
-    font-weight: 600; font-size: .95rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: .95rem;
 }
+
 #chatHeader button {
-    background: none; border: none; color: var(--white);
-    font-size: 1.2rem; cursor: pointer; opacity: .8;
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: .8;
     line-height: 1;
 }
-#chatHeader button:hover { opacity: 1; }
+
+#chatHeader button:hover {
+    opacity: 1;
+}
 
 #chatMessages {
-    flex: 1; overflow-y: auto;
-    padding: 1rem; display: flex; flex-direction: column; gap: .65rem;
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
 }
 
 .chat-msg {
     max-width: 82%;
     padding: .55rem .85rem;
     border-radius: 12px;
-    font-size: .875rem; line-height: 1.45;
+    font-size: .875rem;
+    line-height: 1.45;
     word-break: break-word;
 }
+
 .chat-msg.user {
     align-self: flex-end;
-    background: var(--blue); color: var(--white);
+    background: var(--blue);
+    color: var(--white);
     border-bottom-right-radius: 3px;
 }
+
 .chat-msg.bot {
     align-self: flex-start;
-    background: var(--gray-100); color: var(--gray-800);
+    background: var(--gray-100);
+    color: var(--gray-800);
     border-bottom-left-radius: 3px;
 }
-.chat-msg.typing { color: var(--gray-400); font-style: italic; }
+
+.chat-msg.typing {
+    color: var(--gray-400);
+    font-style: italic;
+}
 
 #chatInputRow {
-    display: flex; gap: .5rem;
-    padding: .75rem; border-top: 1px solid var(--gray-200);
+    display: flex;
+    gap: .5rem;
+    padding: .75rem;
+    border-top: 1px solid var(--gray-200);
 }
+
 #chatInput {
-    flex: 1; padding: .5rem .75rem;
-    border: 1px solid var(--gray-200); border-radius: 6px;
-    font-size: .875rem; font-family: var(--font);
-    outline: none; resize: none;
+    flex: 1;
+    padding: .5rem .75rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: .875rem;
+    font-family: var(--font);
+    outline: none;
+    resize: none;
 }
-#chatInput:focus { border-color: var(--blue); }
+
+#chatInput:focus {
+    border-color: var(--blue);
+}
+
 #chatSendBtn {
     padding: .5rem .85rem;
-    background: var(--blue); color: var(--white);
-    border: none; border-radius: 6px;
-    cursor: pointer; font-size: .875rem;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .875rem;
     transition: background .15s;
 }
-#chatSendBtn:hover:not(:disabled) { background: var(--blue-dark); }
-#chatSendBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+#chatSendBtn:hover:not(:disabled) {
+    background: var(--blue-dark);
+}
+
+#chatSendBtn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
 </style>
 
-<!-- Floating chat button -->
-<button id="chatBtn" onclick="toggleChat()" title="Ask our AI assistant">💬</button>
+<button id="chatBtn" onclick="toggleChat()" title="Ask our AI assistant">Chat</button>
 
-<!-- Chat panel -->
 <div id="chatPanel">
     <div id="chatHeader">
-        <span>🤖 AI Assistant</span>
-        <button onclick="toggleChat()" title="Close">✕</button>
+        <span>AI Assistant</span>
+        <button onclick="toggleChat()" title="Close">x</button>
     </div>
     <div id="chatMessages">
-        <!-- Welcome message shown on first open -->
         <div class="chat-msg bot">
-            Hi! I'm the platform assistant. Ask me anything about booking a session,
-            payment methods, or how the platform works.
+            Hi! I'm the platform assistant. Ask me about booking a session, payment methods,
+            or how the platform works.
         </div>
     </div>
     <div id="chatInputRow">
-        <textarea id="chatInput" rows="1" placeholder="Type a question…"
+        <textarea id="chatInput" rows="1" placeholder="Type a question..."
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
         <button id="chatSendBtn" onclick="sendChat()">Send</button>
     </div>
@@ -625,47 +869,34 @@ function toggleChat() {
 }
 
 async function sendChat() {
-    const input   = document.getElementById('chatInput');
+    const input = document.getElementById('chatInput');
     const message = input.value.trim();
     if (!message) return;
 
     const messages = document.getElementById('chatMessages');
-    const sendBtn  = document.getElementById('chatSendBtn');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const typingId = 'typing-' + Date.now();
 
-    // Show the user's message
-    messages.innerHTML += `<div class="chat-msg user">${escapeHtml(message)}</div>`;
+    messages.innerHTML += `<div class="chat-msg user">${escapeMultilineHtml(message)}</div>`;
+    messages.innerHTML += `<div class="chat-msg bot typing" id="${typingId}">Assistant is typing...</div>`;
     input.value = '';
     sendBtn.disabled = true;
-
-    // Show typing indicator
-    const typingId = 'typing-' + Date.now();
-    messages.innerHTML += `<div class="chat-msg bot typing" id="${typingId}">Assistant is typing…</div>`;
     messages.scrollTop = messages.scrollHeight;
 
     try {
         const data = await api.post('/chat', { message });
-        document.getElementById(typingId).remove();
-        messages.innerHTML += `<div class="chat-msg bot">${escapeHtml(data.reply)}</div>`;
+        const typing = document.getElementById(typingId);
+        if (typing) typing.remove();
+        messages.innerHTML += `<div class="chat-msg bot">${escapeMultilineHtml(data.reply)}</div>`;
     } catch (err) {
-        document.getElementById(typingId).remove();
-        messages.innerHTML += `<div class="chat-msg bot" style="color:var(--red)">
-            Sorry, I'm unavailable right now. Please try again later.
-        </div>`;
+        const typing = document.getElementById(typingId);
+        if (typing) typing.remove();
+        messages.innerHTML += '<div class="chat-msg bot" style="color:var(--red)">Sorry, I am unavailable right now. Please try again later.</div>';
     }
 
     sendBtn.disabled = false;
     messages.scrollTop = messages.scrollHeight;
     input.focus();
-}
-
-/* Prevent XSS — escape any HTML in AI responses before inserting */
-function escapeHtml(str) {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/\n/g, '<br>');
 }
 </script>
 

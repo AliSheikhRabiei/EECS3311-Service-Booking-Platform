@@ -2,19 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=login.html">
-    <title>Service Booking Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome | Service Booking Platform</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="landing-body">
     <script>
-        const role = localStorage.getItem('role');
-        const token = localStorage.getItem('token');
+        const role = sessionStorage.getItem('role');
+        const token = sessionStorage.getItem('token');
         if (token && role) {
             const map = { ADMIN: 'admin.html', CLIENT: 'client.html', CONSULTANT: 'consultant.html' };
             window.location.href = map[role] || 'login.html';
-        } else {
-            window.location.href = 'login.html';
         }
     </script>
+
+    <div class="landing-shell">
+        <section class="landing-hero">
+            <div class="landing-copy">
+                <div class="landing-kicker">Welcome</div>
+                <h1>Book expert help without the back-and-forth.</h1>
+                <p class="landing-lead">
+                    The Service Booking Platform helps clients request sessions, consultants manage
+                    availability, and admins keep the platform running smoothly in one place.
+                </p>
+
+                <div class="landing-actions">
+                    <a class="btn btn-primary landing-btn" href="login.html?mode=login">Sign In</a>
+                    <a class="btn btn-outline landing-btn" href="login.html?mode=register">Create Account</a>
+                </div>
+
+                <div class="landing-meta">
+                    <span>Clients can browse and book services.</span>
+                    <span>Consultants can add availability and services.</span>
+                    <span>Admins can review consultants and policies.</span>
+                </div>
+            </div>
+
+            <div class="landing-panel">
+                <div class="landing-panel-card landing-panel-primary">
+                    <div class="landing-panel-label">Quick Start</div>
+                    <h2>Three simple steps</h2>
+                    <ol class="landing-steps">
+                        <li>Create an account or sign in.</li>
+                        <li>Browse services and request a time slot.</li>
+                        <li>Track approval, payment, and completion.</li>
+                    </ol>
+                </div>
+
+                <div class="landing-panel-card">
+                    <div class="landing-panel-label">For Grading</div>
+                    <p>
+                        Admin login still comes from your <code>.env</code> file, so the welcome page
+                        stays user-friendly without changing the existing testing flow.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-grid">
+            <article class="landing-card">
+                <h3>Discover Services</h3>
+                <p>Clients can compare offerings, see durations and pricing, and request a session in a few clicks.</p>
+            </article>
+            <article class="landing-card">
+                <h3>Manage Availability</h3>
+                <p>Consultants can publish time slots and create services that match their schedule and expertise.</p>
+            </article>
+            <article class="landing-card">
+                <h3>Stay Organized</h3>
+                <p>Bookings, approvals, payments, and policies all stay in one consistent workflow.</p>
+            </article>
+        </section>
+    </div>
 </body>
 </html>
