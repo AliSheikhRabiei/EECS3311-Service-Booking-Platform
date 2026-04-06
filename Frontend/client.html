@@ -185,11 +185,11 @@
     </div>
 
     <div class="card">
-        <div class="card-title">Pay for a Confirmed Booking (UC5)</div>
+        <div class="card-title">Pay for a Booking (UC5)</div>
         <div id="alertPay" class="alert"></div>
         <div class="form-row">
             <div class="form-group">
-                <label>Select Booking (CONFIRMED only)</label>
+                <label>Select Booking (confirmed or retry failed payment)</label>
                 <select id="payBookingSelect" class="form-control"></select>
             </div>
             <div class="form-group">
@@ -373,6 +373,10 @@ function canCancel(status) {
     return ['REQUESTED', 'CONFIRMED', 'PENDING_PAYMENT', 'PAID'].includes(status);
 }
 
+function canPay(status) {
+    return ['CONFIRMED', 'PENDING_PAYMENT'].includes(status);
+}
+
 async function loadBookings(button) {
     const task = async () => {
         try {
@@ -400,17 +404,17 @@ function renderBookings() {
         return matchesTerm && matchesStatus;
     });
 
-    const confirmedCount = bookingsCache.filter(b => b.status === 'CONFIRMED').length;
+    const payableCount = bookingsCache.filter(b => canPay(b.status)).length;
     const activeCount = bookingsCache.filter(b => canCancel(b.status)).length;
     document.getElementById('bookingSummary').innerHTML = `
         <span class="summary-chip"><strong>${bookingsCache.length}</strong> total bookings</span>
-        <span class="summary-chip"><strong>${confirmedCount}</strong> ready to pay</span>
+        <span class="summary-chip"><strong>${payableCount}</strong> ready to pay</span>
         <span class="summary-chip"><strong>${activeCount}</strong> can still be cancelled</span>
     `;
 
     if (!filtered.length) {
         tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No bookings match your filters.</p></div></td></tr>';
-        populateBookingDropdown(bookingsCache.filter(b => b.status === 'CONFIRMED'));
+        populateBookingDropdown(bookingsCache.filter(b => canPay(b.status)));
         return;
     }
 
@@ -435,7 +439,7 @@ function renderBookings() {
         </tr>
     `).join('');
 
-    populateBookingDropdown(bookingsCache.filter(b => b.status === 'CONFIRMED'));
+    populateBookingDropdown(bookingsCache.filter(b => canPay(b.status)));
 }
 
 async function cancelBooking(button, bookingId) {
@@ -602,11 +606,11 @@ function buildMethodBody(type) {
     return {};
 }
 
-function populateBookingDropdown(confirmed) {
+function populateBookingDropdown(payableBookings) {
     const sel = document.getElementById('payBookingSelect');
-    sel.innerHTML = confirmed.length
-        ? confirmed.map(b => `<option value="${escapeAttr(b.bookingId)}">${escapeHtml(b.bookingId)} - ${escapeHtml(b.serviceTitle)}</option>`).join('')
-        : '<option disabled>No confirmed bookings</option>';
+    sel.innerHTML = payableBookings.length
+        ? payableBookings.map(b => `<option value="${escapeAttr(b.bookingId)}">${escapeHtml(b.bookingId)} - ${escapeHtml(b.serviceTitle)}${b.status === 'PENDING_PAYMENT' ? ' (retry payment)' : ''}</option>`).join('')
+        : '<option disabled>No payable bookings</option>';
 }
 
 async function doPay(button) {
@@ -626,8 +630,8 @@ async function doPay(button) {
                 resultDiv.innerHTML = `<span style="color:var(--green)">Payment successful! Transaction: ${escapeHtml(tx.id)} | $${Number(tx.amount).toFixed(2)}</span>`;
                 showAlert('alertPay', 'Payment successful!', 'success');
             } else {
-                resultDiv.innerHTML = `<span style="color:var(--red)">Payment failed (${escapeHtml(tx.status)}). Please try again.</span>`;
-                showAlert('alertPay', 'Payment failed. Please retry.');
+                resultDiv.innerHTML = `<span style="color:var(--red)">Payment failed (${escapeHtml(tx.status)}). The booking is still available for another payment attempt.</span>`;
+                showAlert('alertPay', 'Payment failed. You can try again.', 'error');
             }
             await loadBookings();
             await loadPaymentHistory();
