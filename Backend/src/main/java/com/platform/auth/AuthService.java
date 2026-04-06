@@ -76,6 +76,17 @@ public class AuthService {
         if (!PasswordUtil.verify(password, row.passwordHash)) {
             throw new IllegalArgumentException("Invalid email or password.");
         }
+        if ("CONSULTANT".equals(row.role)) {
+            RegistrationStatus status = row.registrationStatus == null
+                    ? RegistrationStatus.PENDING
+                    : RegistrationStatus.valueOf(row.registrationStatus);
+            if (status != RegistrationStatus.APPROVED) {
+                if (status == RegistrationStatus.REJECTED) {
+                    throw new IllegalArgumentException("Consultant registration was rejected by an admin.");
+                }
+                throw new IllegalArgumentException("Consultant account is awaiting admin approval.");
+            }
+        }
         String token = sessionStore.createSession(row.id, row.role, row.name, row.email);
         System.out.println("[AuthService] Login succeeded for role=" + row.role);
         return token;

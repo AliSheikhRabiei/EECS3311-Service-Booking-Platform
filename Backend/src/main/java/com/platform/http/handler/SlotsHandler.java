@@ -2,6 +2,7 @@ package com.platform.http.handler;
 
 import com.google.gson.JsonObject;
 import com.platform.auth.UserSession;
+import com.platform.domain.RegistrationStatus;
 import com.platform.db.SlotRepository;
 import com.platform.domain.Consultant;
 import com.platform.domain.TimeSlot;
@@ -68,11 +69,11 @@ public class SlotsHandler extends BaseHandler {
     // -- GET /slots -----------------------------------------------------------
 
     private void listSlots(HttpExchange ex) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         List<Dtos.SlotDto> dtos = ctx.slotRepository
-                .findByConsultantId(session.getUserId())
+                .findByConsultantId(consultant.getId())
                 .stream()
                 .map(Dtos.SlotDto::new)
                 .collect(Collectors.toList());
@@ -85,8 +86,8 @@ public class SlotsHandler extends BaseHandler {
     // A 1-hour range creates exactly 1 slot; a 6-hour range creates 6 slots.
 
     private void addSlots(HttpExchange ex) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         JsonObject body = parseBody(ex);
         String startStr = str(body, "start");
@@ -117,8 +118,6 @@ public class SlotsHandler extends BaseHandler {
             return;
         }
 
-        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
-
         // Phase 1 logic: splits any range into 1-hour slots automatically
         int added = ctx.availabilityService.addTimeSlotBlock(consultant, start, end);
 
@@ -126,14 +125,14 @@ public class SlotsHandler extends BaseHandler {
         // Fix: load all existing start times into a Set ONCE before the loop
         // instead of re-querying the DB on every iteration (N+1 query problem).
         Set<LocalDateTime> existingStartTimes = ctx.slotRepository
-                .findByConsultantId(session.getUserId())
+                .findByConsultantId(consultant.getId())
                 .stream()
                 .map(r -> r.start)
                 .collect(Collectors.toCollection(HashSet::new));
 
         for (TimeSlot ts : ctx.availabilityService.listAllSlots(consultant)) {
             if (!existingStartTimes.contains(ts.getStart())) {
-                ctx.slotRepository.save(session.getUserId(), ts);
+                ctx.slotRepository.save(consultant.getId(), ts);
                 existingStartTimes.add(ts.getStart()); // keep Set current without re-querying DB
             }
         }
@@ -147,23 +146,44 @@ public class SlotsHandler extends BaseHandler {
     // -- DELETE /slots/{uuid} -------------------------------------------------
 
     private void deleteSlot(HttpExchange ex, String slotUuid) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         SlotRepository.SlotRow row = ctx.slotRepository.findByUuid(slotUuid);
         if (row == null) { send404(ex, "Slot not found: " + slotUuid); return; }
-        if (!row.consultantId.equals(session.getUserId())) { send403(ex); return; }
+        if (!row.consultantId.equals(consultant.getId())) { send403(ex); return; }
         if (!row.isAvailable) {
             send400(ex, "Cannot remove a reserved slot (a booking exists for it).");
             return;
         }
 
         ctx.slotRepository.delete(slotUuid);
-        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
         ctx.availabilityService.removeTimeSlot(consultant, row.slot.getSlotId());
 
         JsonObject resp = new JsonObject();
         resp.addProperty("message", "Slot deleted.");
         sendOk(ex, resp);
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex) throws IOException {
+        UserSession session = requireRole(ex, "CONSULTANT");
+        if (session == null) return null;
+
+        Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
+        if (consultant == null) {
+            send400(ex, "Consultant profile not found.");
+            return null;
+        }
+        if (consultant.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            sendError(ex, 403, consultantApprovalMessage(consultant));
+            return null;
+        }
+        return consultant;
+    }
+
+    private String consultantApprovalMessage(Consultant consultant) {
+        return consultant.getRegistrationStatus() == RegistrationStatus.REJECTED
+                ? "Consultant registration was rejected by an admin."
+                : "Consultant account is awaiting admin approval.";
     }
 }

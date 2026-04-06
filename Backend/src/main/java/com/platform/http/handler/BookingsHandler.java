@@ -87,7 +87,8 @@ public class BookingsHandler extends BaseHandler {
                         .stream().map(Dtos.BookingDto::new).collect(Collectors.toList());
             }
             case "CONSULTANT" -> {
-                Consultant consultant = ctx.userRepository.loadConsultant(session.getUserId());
+                Consultant consultant = requireApprovedConsultant(ex, session.getUserId());
+                if (consultant == null) return;
                 dtos = ctx.bookingService.getBookingsForConsultant(consultant)
                         .stream().map(Dtos.BookingDto::new).collect(Collectors.toList());
             }
@@ -133,8 +134,12 @@ public class BookingsHandler extends BaseHandler {
             return;
         }
 
-        Service service = ctx.catalog.findById(serviceId);
+        Service service = ctx.serviceRepository.findById(serviceId);
         if (service == null) { send404(ex, "Service not found: " + serviceId); return; }
+        if (service.getConsultant().getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            send400(ex, "This service is not bookable until the consultant is approved.");
+            return;
+        }
 
         SlotRepository.SlotRow slotRow = ctx.slotRepository.findByUuid(slotUuid);
         if (slotRow == null) { send404(ex, "Slot not found: " + slotUuid); return; }
@@ -169,11 +174,11 @@ public class BookingsHandler extends BaseHandler {
     // booking instead of using the stale pre-call reference.
 
     private void confirmBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         // Validate ownership BEFORE the state change
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         // Service call: mutates its own copy and persists to DB
@@ -187,14 +192,14 @@ public class BookingsHandler extends BaseHandler {
     // -- POST /bookings/{id}/reject -------------------------------------------
 
     private void rejectBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
         JsonObject body = parseBody(ex);
         String reason = str(body, "reason");
         if (reason == null) reason = "No reason provided.";
 
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         ctx.bookingService.rejectBooking(bookingId, reason);
@@ -209,10 +214,10 @@ public class BookingsHandler extends BaseHandler {
     // -- POST /bookings/{id}/complete -----------------------------------------
 
     private void completeBooking(HttpExchange ex, String bookingId) throws IOException {
-        UserSession session = requireRole(ex, "CONSULTANT");
-        if (session == null) return;
+        Consultant consultant = requireApprovedConsultant(ex);
+        if (consultant == null) return;
 
-        Booking preCheck = requireBookingForConsultant(ex, bookingId, session.getUserId());
+        Booking preCheck = requireBookingForConsultant(ex, bookingId, consultant.getId());
         if (preCheck == null) return;
 
         ctx.bookingService.completeBooking(bookingId);
@@ -278,6 +283,31 @@ public class BookingsHandler extends BaseHandler {
             send403(ex); return null;
         }
         return booking;
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex) throws IOException {
+        UserSession session = requireRole(ex, "CONSULTANT");
+        if (session == null) return null;
+        return requireApprovedConsultant(ex, session.getUserId());
+    }
+
+    private Consultant requireApprovedConsultant(HttpExchange ex, String consultantId) throws IOException {
+        Consultant consultant = ctx.userRepository.loadConsultant(consultantId);
+        if (consultant == null) {
+            send400(ex, "Consultant profile not found.");
+            return null;
+        }
+        if (consultant.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            sendError(ex, 403, consultantApprovalMessage(consultant));
+            return null;
+        }
+        return consultant;
+    }
+
+    private String consultantApprovalMessage(Consultant consultant) {
+        return consultant.getRegistrationStatus() == RegistrationStatus.REJECTED
+                ? "Consultant registration was rejected by an admin."
+                : "Consultant account is awaiting admin approval.";
     }
 
     /**
