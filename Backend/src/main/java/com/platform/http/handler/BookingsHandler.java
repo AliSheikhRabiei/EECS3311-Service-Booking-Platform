@@ -10,10 +10,17 @@ import com.platform.http.BaseHandler;
 import com.platform.http.dto.Dtos;
 import com.platform.payment.PaymentStatus;
 import com.platform.payment.PaymentTransaction;
+import com.platform.policy.DefaultCancellationPolicy;
+import com.platform.policy.DefaultRefundPolicy;
+import com.platform.policy.FullRefundPolicy;
+import com.platform.policy.NoRefundPolicy;
+import com.platform.policy.StrictCancellationPolicy;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -244,6 +251,10 @@ public class BookingsHandler extends BaseHandler {
         String reason = str(body, "reason");
         if (reason == null) reason = "Cancelled by user.";
 
+        boolean bookingWasPaid = "PAID".equals(preCheck.getStateName());
+        double cancellationFee = ctx.policyManager.getCancellationPolicy()
+                .cancellationFee(preCheck, LocalDateTime.now());
+
         boolean cancelled = ctx.bookingService.cancelBooking(bookingId, reason);
         if (!cancelled) {
             send400(ex, "Cancellation blocked by current cancellation policy.");
@@ -270,7 +281,15 @@ public class BookingsHandler extends BaseHandler {
         releaseSlotByBookingId(bookingId);
 
         Booking updated = ctx.bookingService.getBooking(bookingId);
-        sendOk(ex, new Dtos.BookingDto(updated));
+        Dtos.CancellationResultDto response = new Dtos.CancellationResultDto(updated);
+        response.bookingWasPaid = bookingWasPaid;
+        response.refundProcessed = refundTx != null;
+        response.refundAmount = refundTx != null ? refundTx.getAmount() : 0.0;
+        response.cancellationFee = cancellationFee;
+        response.cancellationPolicy = friendlyCancellationPolicy();
+        response.refundPolicy = bookingWasPaid ? friendlyRefundPolicy() : "No refund needed";
+        response.message = buildCancellationMessage(response);
+        sendOk(ex, response);
     }
 
     // -- Helpers --------------------------------------------------------------
@@ -308,6 +327,52 @@ public class BookingsHandler extends BaseHandler {
         return consultant.getRegistrationStatus() == RegistrationStatus.REJECTED
                 ? "Consultant registration was rejected by an admin."
                 : "Consultant account is awaiting admin approval.";
+    }
+
+    private String friendlyCancellationPolicy() {
+        Object policy = ctx.policyManager.getCancellationPolicy();
+        if (policy instanceof DefaultCancellationPolicy) return "Default cancellation policy";
+        if (policy instanceof StrictCancellationPolicy) return "Strict cancellation policy";
+        return policy.getClass().getSimpleName();
+    }
+
+    private String friendlyRefundPolicy() {
+        Object policy = ctx.policyManager.getRefundPolicy();
+        if (policy instanceof DefaultRefundPolicy) return "Default refund (80%)";
+        if (policy instanceof FullRefundPolicy) return "Full refund (100%)";
+        if (policy instanceof NoRefundPolicy) return "No refund (0%)";
+        return policy.getClass().getSimpleName();
+    }
+
+    private String buildCancellationMessage(Dtos.CancellationResultDto result) {
+        StringBuilder message = new StringBuilder("Booking cancelled.");
+
+        if (result.cancellationFee > 0) {
+            message.append(" Cancellation fee: $")
+                    .append(formatMoney(result.cancellationFee))
+                    .append(".");
+        }
+
+        if (!result.bookingWasPaid) {
+            message.append(" No refund was needed because this booking had not been paid.");
+            return message.toString();
+        }
+
+        message.append(" Refund policy: ").append(result.refundPolicy).append(".");
+
+        if (result.refundProcessed) {
+            message.append(" Refund issued: $")
+                    .append(formatMoney(result.refundAmount))
+                    .append(". Check the Payments tab for the refund record.");
+        } else {
+            message.append(" Refund information is not available yet.");
+        }
+
+        return message.toString();
+    }
+
+    private String formatMoney(double amount) {
+        return String.format(Locale.US, "%.2f", amount);
     }
 
     /**

@@ -37,6 +37,21 @@ public class Dtos {
         }
     }
 
+    public static class CancellationResultDto {
+        public BookingDto booking;
+        public String cancellationPolicy;
+        public String refundPolicy;
+        public boolean bookingWasPaid;
+        public boolean refundProcessed;
+        public double cancellationFee;
+        public double refundAmount;
+        public String message;
+
+        public CancellationResultDto(Booking booking) {
+            this.booking = new BookingDto(booking);
+        }
+    }
+
     // ── Slot ─────────────────────────────────────────────────────────────────
 
     public static class SlotDto {

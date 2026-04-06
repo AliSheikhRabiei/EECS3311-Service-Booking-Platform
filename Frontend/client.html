@@ -442,9 +442,10 @@ async function cancelBooking(button, bookingId) {
     if (!confirm(`Cancel booking ${bookingId}?`)) return;
     const task = async () => {
         try {
-            await api.post(`/bookings/${bookingId}/cancel`, { reason: 'Client requested cancellation' });
-            showAlert('alertBookings', 'Booking cancelled.', 'success');
+            const result = await api.post(`/bookings/${bookingId}/cancel`, { reason: 'Client requested cancellation' });
+            showAlert('alertBookings', result.message || 'Booking cancelled.', 'success');
             await loadBookings();
+            await loadPaymentHistory();
         } catch (err) {
             showAlert('alertBookings', err.message);
         }
