@@ -315,3 +315,4 @@ EECS3311-Service-Booking-Platform/
 - Payment subsystem HTTP integration improvements
 - Frontend improvements (HTML/CSS/JS pages)
 - Bug fixes in multiple places booking state stale reference, slot in-memory sync, SQL schema parsing
+- more bug fixes
