@@ -306,11 +306,12 @@ EECS3311-Service-Booking-Platform/
 - Authentication (`auth/` package): PasswordUtil, SessionStore, AuthService
 - HTTP server foundation: AppContext, BaseHandler, HttpServerLauncher
 - Admin and consultant HTTP handlers
+- Frontend basic
+- AI Customer Assistant (ChatHandler, system prompt design)
 - Backend Dockerfile and docker-compose configuration
 
 **Yasamin Kheirkhahan:**
-- Client and booking HTTP handlers
-- Payment subsystem HTTP integration (PaymentsHandler)
-- AI Customer Assistant (ChatHandler, system prompt design)
-- Frontend (all HTML/CSS/JS pages)
-- Bug fixes: booking state stale reference, slot in-memory sync, SQL schema parsing
+- Client and booking HTTP handlers improvements
+- Payment subsystem HTTP integration improvements
+- Frontend improvements (HTML/CSS/JS pages)
+- Bug fixes in multiple places booking state stale reference, slot in-memory sync, SQL schema parsing
